@@ -1,0 +1,114 @@
+:root{color-scheme:light;--bg:#edf1ef;--panel:#ffffff;--card:#f4f7f5;--line:#d6dfdc;--text:#233b36;--muted:#61756e;--amber:#247d66;--green:#23836b;--red:#b25040;font-family:"Segoe UI","Microsoft YaHei",sans-serif;font-weight:400}
+button{background:#fff;border-color:#d7dfdc;box-shadow:none}
+button:hover:not(:disabled){background:#eef5f1;border-color:#93afa2}
+.primary{background:#286f5b;color:#fff;border-color:#286f5b}
+.primary:hover:not(:disabled){background:#1d5b49;color:#fff;border-color:#1d5b49}
+.active{background:#e6f2ec!important;color:#256f58!important;border-color:#71a38e!important}
+.topbar{background:#fbfcf9f5;border-color:#d9e1dc;box-shadow:0 1px 12px #2c483608}
+.brand-name{letter-spacing:1px}
+.brand-mark i{background:#387962}
+.mode-label{letter-spacing:0;background:#edf4ef;border:0;color:#61766c;font-weight:500}
+.top-actions .icon-button:hover{background:#eaf1ed}
+.top-actions .template-entry{background:#e5f0e9;color:#2a6c56;border-color:#d5e5da;font-weight:600}
+.construction-dock,.toolbar,.runtime-toolbar{background:#fffffff0;border-color:#d3ded7;box-shadow:0 8px 32px #224f3412}
+.dock-tabs{border-color:#dfe6e0}
+.dock-tabs button,.road-modes button{color:#60766c}
+.tool-hint{background:#ffffffed;color:#3e574a;border:1px solid #d6e2d9;box-shadow:none}
+.tool-hint strong{color:#2b5744}
+.tool-hint span{color:#63796d}
+.connection{color:#526f5d}
+.connection .status-dot{background:#dbe7df;color:#597363}
+.command-rail{background:#fffffff0;border-color:#d3dfd7;box-shadow:0 8px 30px #224f3410}
+.command-rail button{background:transparent;color:#526d5d}
+.command-rail button:hover{background:#ecf3ee}
+.camera-controls button{background:#fffffff2;border-color:#d2ddd5;color:#55705f}
+.view-label{color:#637a6b;background:#f5f8f4b8}
+.empty-state h1{color:#365e49;font-weight:650;letter-spacing:0}
+.empty-state .empty-road{color:#6a927c}
+.empty-state p,.intro-note{color:#6e8374}
+.panel{background:#fdfefa;border-color:#d9e1da;box-shadow:-15px 0 40px #224f3410}
+.panel-head h2{letter-spacing:0}
+.panel-foot{border-color:#d9e4da}
+.panel-body input[type=number],.panel-body input[type=text],.panel-body select{background:#fff;color:#294c39;border-color:#bdcebf}
+.panel h3{font-weight:600}
+.settings-note,.panel-body .settings-note{background:#edf4ed;color:#52705c;border-color:#d5e2d5}
+.menu-divider,.speed-row{border-color:#dae3db}
+.check-row input{background:#fff;border-color:#a7bcac}
+.check-row input:checked{background:#357c5a}
+.check-row input:checked:after{color:#fff}
+.profile-list button,.menu-list button{background:#fff}
+.profile-list button:hover,.menu-list button:hover{background:#edf4ed}
+.toast{background:#fff;color:#2e523b;border-color:#c0d3c3;box-shadow:0 8px 25px #183d2820}
+.map-label{color:#1e7859;text-shadow:0 1px 5px white,0 0 7px white}
+.map-label.sink{color:#996327}
+.hud,.traffic-status,.demand-pill,.traffic-legend{background:#fffffff0;color:#365844;border-color:#cfdfd1;box-shadow:0 5px 20px #2043270a}
+.hud .sep{background:#c5d6c8}
+.hud-item strong{color:#2d7851}
+.sim-status{color:#536f5c}
+.dialog-backdrop{background:#15321d30;backdrop-filter:blur(6px)}
+.dialog{background:#fcfdf9;border-color:#d3dfd4}
+.dialog p{color:#5d7664}
+.panel-context{background:#eef4ed;color:#56715d}
+.signal-preview{background:#e9efe9;border-color:#d3dfd4}
+.signal-mode-grid button,.weather-grid button,.facility-grid button{background:#fff}
+.weather-grid strong{color:#476d50}
+.rule-good{background:#e7f3e8;color:#306841;border-color:#9dc9a5}
+.rule-danger{background:#fff0e9;color:#a74f36;border-color:#deb1a0}
+.incident-actions button{background:#fff3eb;color:#995535;border-color:#e6c5ac}
+.vehicle-inspector img{background:#e4ede4}
+.garage-card{background:#fff;border-color:#ccdccc}
+.garage-card span{color:#3e6447}
+.incident-pill{background:#fff1e7;color:#9c4d2d;border-color:#dfb9a3}
+.scene-labels .map-label{font-size:22px}
+.empty-state .intro-note button{pointer-events:auto;padding:10px 18px;border-radius:9px;margin-top:8px}
+#queue-chart{max-width:720px;margin:auto}
+@media(max-width:800px){.top-actions .template-entry{padding:8px 10px;font-size:18px}
+.top-actions .template-entry .icon{display:none}}
+@media(max-width:520px){.brand-mark,.topbar .mode-label{display:none}
+.brand-name{font-size:21px}
+.top-actions{gap:0}
+.top-actions .template-entry{padding:7px}
+.top-actions #view-toggle{max-width:40px}
+.view-label{background:#f5f8f4bf}}
+:root{--cyan:#2a795d}
+.dock-tabs{background:#f5f8f3}
+.construction-dock .tool,.road-modes button{background:#fbfdf9;color:#53735d;border-color:#d0dfd0}
+.construction-dock button.active{color:#246447!important;border-color:#98bba1!important;background:#e2eee1!important}
+.construction-dock .tool:hover,.road-modes button:hover{background:#eaf3e8}
+.traffic-status #actual-speed{color:#667d6c}
+.traffic-status[data-level=slow]{background:#fff8e9;border-color:#d7bd7d;color:#92732d}
+.traffic-status[data-level=congested]{background:#fff0eb;border-color:#d5a69a;color:#ad5a43}
+.loading-note{background:#f6faf3ed;color:#65816c}
+.facility-symbol{background:#edf4ec;color:#477255;border-color:#b9d0bd}
+.connection.valid .status-dot{background:#2e7a56;color:white}
+.connection.valid{color:#347354}
+.runtime-toolbar .divider{background:#cadbca}
+@media(max-width:600px){.connection{font-size:18px}}
+.tool-hint strong{flex-shrink:0;white-space:nowrap}
+.tool-hint span{min-width:0}
+.view-compact{display:none}
+@media(max-width:600px){#view-toggle .view-full{display:none}
+#view-toggle .view-compact{display:inline}
+.top-actions #view-toggle{min-width:44px;width:44px;max-width:44px;padding:8px;overflow:hidden;justify-content:center}}
+@media(max-width:600px){#app:not(.is-running) .camera-controls{top:75px;flex-direction:row}}
+.template-list{display:grid;gap:12px}
+.template-list button{display:flex;align-items:center;gap:15px;text-align:left;padding:17px 15px;background:#fff;border:1px solid #d6e2d7;min-height:86px}
+.template-list strong{display:block;font-size:21px;font-weight:600;color:#365b44}
+.template-list small{display:block;font-size:18px;line-height:1.5;color:#738575;margin-top:7px}
+.template-icon{color:#548469}
+.template-arrow{margin-left:auto;font-size:22px;color:#72977c}
+.template-list button:hover{background:#edf5eb}
+.start-button{white-space:nowrap}.theory-tabs{display:flex;gap:8px}.theory-tabs button{flex:1;padding:11px 6px;min-height:47px;font-size:18px;white-space:nowrap}.theory-animation{background:#f2f6f0;border:1px solid #d7e3d5;border-radius:13px;margin:20px 0 16px;overflow:hidden}.theory-animation svg{width:100%;height:auto;display:block}.theory-variants{display:flex;gap:10px;margin:14px 0}.theory-variants button{flex:1;padding:11px;font-size:19px}.theory-status{font-size:20px;line-height:1.65;color:#447451;min-height:66px;margin:15px 0}.theory-pause{width:100%;padding:12px;font-size:19px}.panel-body .theory-caption{font-size:18px;color:#839084;line-height:1.7}.panel-body .theory-tabs+h3{font-size:24px;line-height:1.6}.panel-body .theory-tabs~p{line-height:1.8}
+
+.panel-foot{background:#fbfdf9}.theory-footer{display:flex;gap:12px}.theory-footer button{flex:1;white-space:nowrap}
+
+.lane-presets{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:15px 0}.lane-presets button{min-height:46px;padding:9px 4px;font-size:18px;white-space:nowrap}.lane-fields{display:grid;grid-template-columns:1fr 1fr;gap:15px}.lane-fields .field{margin:12px 0}.lane-summary{padding:12px;background:#edf4eb;border-radius:8px;color:#467353!important}
+
+.brand-mark{display:grid;place-items:center;width:40px;height:40px;transform:none}.brand-mark img{display:block;width:100%;height:100%}.brand{gap:12px}.brand-name{letter-spacing:0;font-weight:650}@media(max-width:600px){.brand-mark{display:grid;width:30px;height:30px}.brand{gap:8px}.brand-name{font-size:21px}}
+
+.turn-config{border:1px solid #d5e3d5;border-radius:9px;padding:14px;margin:15px 0}.turn-config summary{font-size:20px;color:#3f7351;cursor:pointer}.turn-config h4{font-size:19px;font-weight:600;margin:20px 0 11px}.turn-row{display:flex;align-items:center;gap:12px;margin:9px 0;font-size:18px}.turn-row>span{min-width:73px}.turn-row select{min-width:0;flex:1;padding:10px 8px;background:white;border:1px solid #bdd0c0;border-radius:7px;color:#365b42;font-size:18px}
+
+.parameter-link{padding:11px 15px;font-size:18px;margin-bottom:14px}.profile-evidence>div{padding:15px 0;border-bottom:1px solid #d9e4d7;display:grid;gap:8px}.profile-evidence strong{font-size:21px}.profile-evidence span,.profile-evidence small{font-size:18px;color:#6b826e;line-height:1.6}
+.menu-history{display:flex;gap:10px;margin-bottom:12px}.menu-list .menu-history button{flex:1;justify-content:center;min-height:48px}
+.connection{width:100%;white-space:normal;text-align:center;line-height:1.35;gap:8px}.connection .status-dot{flex-shrink:0}#connection-text{min-width:0}
+.port-controls{display:grid;gap:8px}.port-controls button{min-height:48px;padding:10px 14px;text-align:left}
