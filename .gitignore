@@ -10,3 +10,4 @@ dist/
 *.local.*
 Thumbs.db
 .DS_Store
+docs/
