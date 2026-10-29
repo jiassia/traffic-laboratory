@@ -683,29 +683,52 @@ select:focus-visible {
 }
 
 /* ==========================================================================
-   右侧控制轨 (Command Rail) - 极简悬浮小药丸
+   右侧统一控制中心 (Unified Command Rail) - Apple 风格悬浮坞
    ========================================================================== */
 
 .command-rail {
-  top: 80px;
+  position: absolute;
+  top: 76px;
   right: 20px;
-  padding: 6px;
-  gap: 4px;
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.88);
+  z-index: 8;
+  display: flex;
+  flex-direction: column;
+  padding: 5px;
+  gap: 2px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.90);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
   border: 1px solid var(--line);
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 10px 28px -4px rgba(15, 23, 42, 0.12), var(--shadow-sm);
+  transition: right 0.28s cubic-bezier(0.16, 1, 0.3, 1), transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease;
+  max-height: calc(100vh - 96px);
+  overflow-y: auto;
+}
+
+#app.has-panel .command-rail {
+  right: 436px;
+}
+
+.rail-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.rail-divider {
+  height: 1px;
+  background: rgba(15, 23, 42, 0.08);
+  margin: 4px 6px;
 }
 
 .command-rail button {
-  min-width: 96px;
-  min-height: 36px;
-  padding: 6px 10px;
+  min-width: 106px;
+  height: 34px;
+  padding: 0 10px;
   font-size: 13px;
-  font-weight: 500;
-  border-radius: 8px;
+  font-weight: 550;
+  border-radius: 9px;
   border: 1px solid transparent;
   background: transparent;
   box-shadow: none;
@@ -713,16 +736,37 @@ select:focus-visible {
   display: flex;
   align-items: center;
   gap: 8px;
+  cursor: pointer;
+  transition: all 0.16s ease;
+  white-space: nowrap;
 }
 
 .command-rail button:hover {
-  background: rgba(15, 23, 42, 0.05);
+  background: rgba(15, 23, 42, 0.06);
   color: var(--text);
+  transform: translateX(-1px);
+}
+
+.command-rail button.active {
+  background: var(--primary-soft) !important;
+  color: var(--primary) !important;
+  border-color: var(--primary-border) !important;
+  font-weight: 650 !important;
+  box-shadow: 0 1px 4px rgba(16, 185, 129, 0.15) !important;
 }
 
 .command-rail .icon {
-  width: 18px;
-  height: 18px;
+  width: 17px;
+  height: 17px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 960px) {
+  #app.has-panel .command-rail {
+    right: 20px;
+    opacity: 0;
+    pointer-events: none;
+  }
 }
 
 /* ==========================================================================
@@ -2513,4 +2557,87 @@ select:focus-visible {
 .road-modes.hidden,
 .snap-strip.hidden {
   display: none !important;
+}
+
+/* 设计档案面板列表 */
+.files-action-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.file-card-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: #ffffff;
+  box-shadow: var(--shadow-xs);
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.file-card-btn:hover {
+  background: #f8fafc;
+  border-color: rgba(16, 185, 129, 0.4);
+  transform: translateY(-1.5px);
+  box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.08);
+}
+
+.file-card-btn.danger:hover {
+  background: #fff5f5;
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+.file-card-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--primary-soft);
+  color: var(--primary);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.file-card-btn.danger .file-card-icon {
+  background: #fee2e2;
+  color: #ef4444;
+}
+
+.file-card-btn div {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.file-card-btn strong {
+  font-size: 14.5px;
+  font-weight: 650;
+  color: var(--text);
+  line-height: 1.3;
+}
+
+.file-card-btn small {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.file-card-btn .arrow {
+  color: #94a3b8;
+  font-size: 16px;
+  margin-left: auto;
+}
+
+.card-divider {
+  height: 1px;
+  background: rgba(15, 23, 42, 0.08);
+  margin: 4px 0;
 }
