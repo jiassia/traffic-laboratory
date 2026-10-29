@@ -6,7 +6,7 @@ import {roadPath,roadPointAt,makePath,pathPointAt} from './geometry.mjs';
 import {laneCounts,laneOffset,roadWidth,hasLaneConfiguration,effectiveLaneTurns} from './lanes.mjs';
 import {WorldDetails} from './world-details.js';
 import {junctionLayout} from './junction-layout.mjs';
-import {pavementFootprints,dominantThroughPair} from './junction-design.mjs';
+import {pavementFootprints,dominantThroughPair,cornerBends} from './junction-design.mjs';
 import {terminalIds,terminalLabel} from './terminals.mjs';
 import {roadTurnarounds} from './turnarounds.mjs';
 
@@ -209,6 +209,15 @@ export class TrafficScene {
       const middle=roadPointAt(network,road,path.length/2);const badge=document.createElement('div');badge.className='road-badge hidden';this.labelLayer.append(badge);this.roadVisuals.set(road.id,{surface,badge,p:{x:middle.x,z:middle.z,y:1},level:null});
     }
     this.junctionGuidance(network,layout,connections);
+    const bends = cornerBends(network, 0);
+    for (const bend of bends.values()) {
+      const active = selection === bend.roadA.id || selection === bend.roadB.id;
+      this.pathLine(bend.outerCurve, active ? AMBER : 0xbac6c7, .48);
+      this.pathLine(bend.innerCurve, active ? AMBER : 0xbac6c7, .48);
+      if (bend.centerCurve) {
+        this.pathLine(bend.centerCurve, bend.divider ? 0xd5bc76 : 0xe3e8e1, .49, !bend.divider);
+      }
+    }
     for(const node of network.nodes){
       const attached=network.roads.filter(r=>r.a===node.id||r.b===node.id),deg=attached.length;
       if([...terminalIds(network,'source'),...terminalIds(network,'sink')].includes(node.id)){const source=terminalIds(network,'source').includes(node.id),road=attached[0],path=road&&roadPath(network,road),p=road&&roadPointAt(network,road,road.a===node.id?0:path.length);const gate=this.makeGate(source,road?roadWidth(road):9.6,road?Array.from({length:laneCounts(road).forward},(_,i)=>(source?-1:1)*laneOffset(road,true,i)):[0]);gate.position.set(node.x,.4,node.z);gate.rotation.y=p?p.yaw+(road.b===node.id?Math.PI:0):Math.PI/2;this.roadGroup.add(gate);const label=document.createElement('div');label.className=`map-label ${source?'source':'sink'}`;label.textContent=terminalLabel(network,source?'source':'sink',node.id);this.labelLayer.append(label);this.labels.push({el:label,p:{x:node.x,z:node.z,y:8}});
