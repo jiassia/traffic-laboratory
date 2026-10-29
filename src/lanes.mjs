@@ -60,7 +60,13 @@ export function effectiveLaneTurns(network,road,forward,index=0){
 }
 export function laneAllowsMovement(network,inRoad,inForward,index,outRoad,outForward){
   const specified=inRoad[inForward?'turnsForward':'turnsBackward']?.[index];
-  // Automatic inner lanes retain legal dead-end backtracking without dedicating a live through lane to a nonexistent branch.
-  if(inRoad.id===outRoad.id&&!specified?.length)return index===0;
+  // 仅在死胡同尽头（节点无其他可通行出口）且未指定特定转向时，内侧车道才自动允许掉头
+  if(inRoad.id===outRoad.id){
+    if(specified?.length)return specified.includes('left')||specified.includes('uTurn');
+    const at=inForward?inRoad.b:inRoad.a;
+    const hasOtherOut=outgoingRoads(network,at).some(edge=>edge.road.id!==inRoad.id);
+    if(hasOtherOut)return false;
+    return index===0;
+  }
   return effectiveLaneTurns(network,inRoad,inForward,index).includes(classifyTurn(network,inRoad,inForward,outRoad,outForward));
 }
