@@ -11,6 +11,7 @@ import {terminalIds,terminalLabel} from './terminals.mjs';
 import {roadTurnarounds} from './turnarounds.mjs';
 
 export const assetUrl = path => new URL(`./assets/${path}`, document.baseURI).href;
+if (typeof window !== 'undefined') window.THREE = THREE;
 const BG=0xeaf0e8, ROAD=0x1d2428, EDGE=0x405057, AMBER=0xffbd4c, GREEN=0x74edb3;
 const mat=(color,other={})=>new THREE.MeshStandardMaterial({color,roughness:.83,...other});
 const makeBox=(w,h,d,material)=>new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material);
@@ -38,8 +39,8 @@ export class TrafficScene {
     const floor=new THREE.Mesh(new THREE.PlaneGeometry(2200,2200),new THREE.MeshBasicMaterial({color:BG,toneMapped:false}));floor.rotation.x=-Math.PI/2;floor.position.y=-.3;this.scene.add(floor);this.floor=floor;
     this.grid=new THREE.GridHelper(1200,120,0xb7cbb9,0xd4e0d0);this.grid.position.y=0;this.grid.material.transparent=true;this.grid.material.opacity=.45;this.grid.material.toneMapped=false;this.scene.add(this.grid);
     this.roadGroup=new THREE.Group();this.carGroup=new THREE.Group();this.previewGroup=new THREE.Group();this.hoverGroup=new THREE.Group();this.garageGroup=new THREE.Group();this.scene.add(this.roadGroup,this.carGroup,this.previewGroup,this.hoverGroup,this.garageGroup);this.garageGroup.visible=false;this.details=new WorldDetails(this.scene,this.models);this.settings={timeOfDay:'day',weather:'clear'};
-    const plinth=new THREE.Mesh(new THREE.CylinderGeometry(9.5,10,.35,80),mat(0x2b414e,{metalness:.3}));plinth.position.y=-.03;plinth.receiveShadow=true;this.garageGroup.add(plinth);
-    const ring=new THREE.Mesh(new THREE.TorusGeometry(9.2,.035,8,96),mat(0x70848d));ring.rotation.x=Math.PI/2;ring.position.y=.17;this.garageGroup.add(ring);
+    const plinth=new THREE.Mesh(new THREE.CylinderGeometry(9.5,10,.35,80),mat(0xdce5e0,{metalness:.1,roughness:.6}));plinth.position.y=-.03;plinth.receiveShadow=true;this.garageGroup.add(plinth);
+    const ring=new THREE.Mesh(new THREE.TorusGeometry(9.2,.035,8,96),mat(0x9cb6a8));ring.rotation.x=Math.PI/2;ring.position.y=.17;this.garageGroup.add(ring);
     new ResizeObserver(()=>this.resize()).observe(host);this.resize();this.loadModels();
   }
   enableFallback(){

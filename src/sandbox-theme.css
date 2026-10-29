@@ -1,114 +1,2408 @@
-:root{color-scheme:light;--bg:#edf1ef;--panel:#ffffff;--card:#f4f7f5;--line:#d6dfdc;--text:#233b36;--muted:#61756e;--amber:#247d66;--green:#23836b;--red:#b25040;font-family:"Segoe UI","Microsoft YaHei",sans-serif;font-weight:400}
-button{background:#fff;border-color:#d7dfdc;box-shadow:none}
-button:hover:not(:disabled){background:#eef5f1;border-color:#93afa2}
-.primary{background:#286f5b;color:#fff;border-color:#286f5b}
-.primary:hover:not(:disabled){background:#1d5b49;color:#fff;border-color:#1d5b49}
-.active{background:#e6f2ec!important;color:#256f58!important;border-color:#71a38e!important}
-.topbar{background:#fbfcf9f5;border-color:#d9e1dc;box-shadow:0 1px 12px #2c483608}
-.brand-name{letter-spacing:1px}
-.brand-mark i{background:#387962}
-.mode-label{letter-spacing:0;background:#edf4ef;border:0;color:#61766c;font-weight:500}
-.top-actions .icon-button:hover{background:#eaf1ed}
-.top-actions .template-entry{background:#e5f0e9;color:#2a6c56;border-color:#d5e5da;font-weight:600}
-.construction-dock,.toolbar,.runtime-toolbar{background:#fffffff0;border-color:#d3ded7;box-shadow:0 8px 32px #224f3412}
-.dock-tabs{border-color:#dfe6e0}
-.dock-tabs button,.road-modes button{color:#60766c}
-.tool-hint{background:#ffffffed;color:#3e574a;border:1px solid #d6e2d9;box-shadow:none}
-.tool-hint strong{color:#2b5744}
-.tool-hint span{color:#63796d}
-.connection{color:#526f5d}
-.connection .status-dot{background:#dbe7df;color:#597363}
-.command-rail{background:#fffffff0;border-color:#d3dfd7;box-shadow:0 8px 30px #224f3410}
-.command-rail button{background:transparent;color:#526d5d}
-.command-rail button:hover{background:#ecf3ee}
-.camera-controls button{background:#fffffff2;border-color:#d2ddd5;color:#55705f}
-.view-label{color:#637a6b;background:#f5f8f4b8}
-.empty-state h1{color:#365e49;font-weight:650;letter-spacing:0}
-.empty-state .empty-road{color:#6a927c}
-.empty-state p,.intro-note{color:#6e8374}
-.panel{background:#fdfefa;border-color:#d9e1da;box-shadow:-15px 0 40px #224f3410}
-.panel-head h2{letter-spacing:0}
-.panel-foot{border-color:#d9e4da}
-.panel-body input[type=number],.panel-body input[type=text],.panel-body select{background:#fff;color:#294c39;border-color:#bdcebf}
-.panel h3{font-weight:600}
-.settings-note,.panel-body .settings-note{background:#edf4ed;color:#52705c;border-color:#d5e2d5}
-.menu-divider,.speed-row{border-color:#dae3db}
-.check-row input{background:#fff;border-color:#a7bcac}
-.check-row input:checked{background:#357c5a}
-.check-row input:checked:after{color:#fff}
-.profile-list button,.menu-list button{background:#fff}
-.profile-list button:hover,.menu-list button:hover{background:#edf4ed}
-.toast{background:#fff;color:#2e523b;border-color:#c0d3c3;box-shadow:0 8px 25px #183d2820}
-.map-label{color:#1e7859;text-shadow:0 1px 5px white,0 0 7px white}
-.map-label.sink{color:#996327}
-.hud,.traffic-status,.demand-pill,.traffic-legend{background:#fffffff0;color:#365844;border-color:#cfdfd1;box-shadow:0 5px 20px #2043270a}
-.hud .sep{background:#c5d6c8}
-.hud-item strong{color:#2d7851}
-.sim-status{color:#536f5c}
-.dialog-backdrop{background:#15321d30;backdrop-filter:blur(6px)}
-.dialog{background:#fcfdf9;border-color:#d3dfd4}
-.dialog p{color:#5d7664}
-.panel-context{background:#eef4ed;color:#56715d}
-.signal-preview{background:#e9efe9;border-color:#d3dfd4}
-.signal-mode-grid button,.weather-grid button,.facility-grid button{background:#fff}
-.weather-grid strong{color:#476d50}
-.rule-good{background:#e7f3e8;color:#306841;border-color:#9dc9a5}
-.rule-danger{background:#fff0e9;color:#a74f36;border-color:#deb1a0}
-.incident-actions button{background:#fff3eb;color:#995535;border-color:#e6c5ac}
-.vehicle-inspector img{background:#e4ede4}
-.garage-card{background:#fff;border-color:#ccdccc}
-.garage-card span{color:#3e6447}
-.incident-pill{background:#fff1e7;color:#9c4d2d;border-color:#dfb9a3}
-.scene-labels .map-label{font-size:22px}
-.empty-state .intro-note button{pointer-events:auto;padding:10px 18px;border-radius:9px;margin-top:8px}
-#queue-chart{max-width:720px;margin:auto}
-@media(max-width:800px){.top-actions .template-entry{padding:8px 10px;font-size:18px}
-.top-actions .template-entry .icon{display:none}}
-@media(max-width:520px){.brand-mark,.topbar .mode-label{display:none}
-.brand-name{font-size:21px}
-.top-actions{gap:0}
-.top-actions .template-entry{padding:7px}
-.top-actions #view-toggle{max-width:40px}
-.view-label{background:#f5f8f4bf}}
-:root{--cyan:#2a795d}
-.dock-tabs{background:#f5f8f3}
-.construction-dock .tool,.road-modes button{background:#fbfdf9;color:#53735d;border-color:#d0dfd0}
-.construction-dock button.active{color:#246447!important;border-color:#98bba1!important;background:#e2eee1!important}
-.construction-dock .tool:hover,.road-modes button:hover{background:#eaf3e8}
-.traffic-status #actual-speed{color:#667d6c}
-.traffic-status[data-level=slow]{background:#fff8e9;border-color:#d7bd7d;color:#92732d}
-.traffic-status[data-level=congested]{background:#fff0eb;border-color:#d5a69a;color:#ad5a43}
-.loading-note{background:#f6faf3ed;color:#65816c}
-.facility-symbol{background:#edf4ec;color:#477255;border-color:#b9d0bd}
-.connection.valid .status-dot{background:#2e7a56;color:white}
-.connection.valid{color:#347354}
-.runtime-toolbar .divider{background:#cadbca}
-@media(max-width:600px){.connection{font-size:18px}}
-.tool-hint strong{flex-shrink:0;white-space:nowrap}
-.tool-hint span{min-width:0}
-.view-compact{display:none}
-@media(max-width:600px){#view-toggle .view-full{display:none}
-#view-toggle .view-compact{display:inline}
-.top-actions #view-toggle{min-width:44px;width:44px;max-width:44px;padding:8px;overflow:hidden;justify-content:center}}
-@media(max-width:600px){#app:not(.is-running) .camera-controls{top:75px;flex-direction:row}}
-.template-list{display:grid;gap:12px}
-.template-list button{display:flex;align-items:center;gap:15px;text-align:left;padding:17px 15px;background:#fff;border:1px solid #d6e2d7;min-height:86px}
-.template-list strong{display:block;font-size:21px;font-weight:600;color:#365b44}
-.template-list small{display:block;font-size:18px;line-height:1.5;color:#738575;margin-top:7px}
-.template-icon{color:#548469}
-.template-arrow{margin-left:auto;font-size:22px;color:#72977c}
-.template-list button:hover{background:#edf5eb}
-.start-button{white-space:nowrap}.theory-tabs{display:flex;gap:8px}.theory-tabs button{flex:1;padding:11px 6px;min-height:47px;font-size:18px;white-space:nowrap}.theory-animation{background:#f2f6f0;border:1px solid #d7e3d5;border-radius:13px;margin:20px 0 16px;overflow:hidden}.theory-animation svg{width:100%;height:auto;display:block}.theory-variants{display:flex;gap:10px;margin:14px 0}.theory-variants button{flex:1;padding:11px;font-size:19px}.theory-status{font-size:20px;line-height:1.65;color:#447451;min-height:66px;margin:15px 0}.theory-pause{width:100%;padding:12px;font-size:19px}.panel-body .theory-caption{font-size:18px;color:#839084;line-height:1.7}.panel-body .theory-tabs+h3{font-size:24px;line-height:1.6}.panel-body .theory-tabs~p{line-height:1.8}
+/* ==========================================================================
+   堵车实验室 · 现代化浅色设计系统 (Apple & ChatGPT 质感风格)
+   ========================================================================== */
 
-.panel-foot{background:#fbfdf9}.theory-footer{display:flex;gap:12px}.theory-footer button{flex:1;white-space:nowrap}
+:root {
+  color-scheme: light;
 
-.lane-presets{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:15px 0}.lane-presets button{min-height:46px;padding:9px 4px;font-size:18px;white-space:nowrap}.lane-fields{display:grid;grid-template-columns:1fr 1fr;gap:15px}.lane-fields .field{margin:12px 0}.lane-summary{padding:12px;background:#edf4eb;border-radius:8px;color:#467353!important}
+  /* 字体族：优先系统级原生 Apple / 现代无衬线栈 */
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 
-.brand-mark{display:grid;place-items:center;width:40px;height:40px;transform:none}.brand-mark img{display:block;width:100%;height:100%}.brand{gap:12px}.brand-name{letter-spacing:0;font-weight:650}@media(max-width:600px){.brand-mark{display:grid;width:30px;height:30px}.brand{gap:8px}.brand-name{font-size:21px}}
+  /* 配色系统：通透、纯净、现代墨绿与高级 Slate 色系 */
+  --bg: #f8fafc;
+  --bg-subtle: #f1f5f9;
+  --panel: #ffffff;
+  --panel-glass: rgba(255, 255, 255, 0.88);
+  --card: #ffffff;
+  --card-subtle: #f8fafc;
+  --card-hover: #f1f5f9;
 
-.turn-config{border:1px solid #d5e3d5;border-radius:9px;padding:14px;margin:15px 0}.turn-config summary{font-size:20px;color:#3f7351;cursor:pointer}.turn-config h4{font-size:19px;font-weight:600;margin:20px 0 11px}.turn-row{display:flex;align-items:center;gap:12px;margin:9px 0;font-size:18px}.turn-row>span{min-width:73px}.turn-row select{min-width:0;flex:1;padding:10px 8px;background:white;border:1px solid #bdd0c0;border-radius:7px;color:#365b42;font-size:18px}
+  /* 描边系统：告别死黑硬线，采用 Apple 风格半透明微描边 */
+  --line: rgba(15, 23, 42, 0.08);
+  --line-light: rgba(15, 23, 42, 0.04);
+  --line-strong: rgba(15, 23, 42, 0.14);
 
-.parameter-link{padding:11px 15px;font-size:18px;margin-bottom:14px}.profile-evidence>div{padding:15px 0;border-bottom:1px solid #d9e4d7;display:grid;gap:8px}.profile-evidence strong{font-size:21px}.profile-evidence span,.profile-evidence small{font-size:18px;color:#6b826e;line-height:1.6}
-.menu-history{display:flex;gap:10px;margin-bottom:12px}.menu-list .menu-history button{flex:1;justify-content:center;min-height:48px}
-.connection{width:100%;white-space:normal;text-align:center;line-height:1.35;gap:8px}.connection .status-dot{flex-shrink:0}#connection-text{min-width:0}
-.port-controls{display:grid;gap:8px}.port-controls button{min-height:48px;padding:10px 14px;text-align:left}
+  /* 文字颜色：高对比度深炭灰与层级灰阶 */
+  --text: #0f172a;           /* 主文字 Slate 900 */
+  --text-secondary: #334155; /* 副文字 Slate 700 */
+  --muted: #64748b;          /* 弱化文字 Slate 500 */
+  --subtle: #94a3b8;         /* 占位与微文字 Slate 400 */
+
+  /* 品牌色与状态色：克制典雅的翡翠墨绿体系 */
+  --primary: #0f766e;        /* 主色 Teal 700 */
+  --primary-hover: #0d9488;  /* Hover Teal 600 */
+  --primary-active: #115e59; /* Active Teal 800 */
+  --primary-soft: rgba(15, 118, 110, 0.08);
+  --primary-border: rgba(15, 118, 110, 0.22);
+
+  --green: #10b981;          /* 畅通绿 */
+  --green-soft: rgba(16, 185, 129, 0.12);
+  --green-border: rgba(16, 185, 129, 0.28);
+  --green-text: #047857;
+
+  --amber: #f59e0b;          /* 缓行黄/提示 */
+  --amber-soft: rgba(245, 158, 11, 0.12);
+  --amber-border: rgba(245, 158, 11, 0.28);
+  --amber-text: #b45309;
+
+  --red: #ef4444;            /* 拥堵红/危险 */
+  --red-soft: rgba(239, 68, 68, 0.12);
+  --red-border: rgba(239, 68, 68, 0.28);
+  --red-text: #b91c1c;
+
+  --cyan: #0f766e;
+
+  /* 柔和阴影体系 (多层弥散，告别脏黑阴影) */
+  --shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-sm: 0 2px 6px -1px rgba(15, 23, 42, 0.06), 0 1px 4px -1px rgba(15, 23, 42, 0.03);
+  --shadow-md: 0 6px 18px -3px rgba(15, 23, 42, 0.08), 0 2px 8px -2px rgba(15, 23, 42, 0.04);
+  --shadow-lg: 0 12px 32px -4px rgba(15, 23, 42, 0.1), 0 4px 12px -2px rgba(15, 23, 42, 0.05);
+  --shadow-float: 0 20px 40px -8px rgba(15, 23, 42, 0.12), 0 6px 16px -4px rgba(15, 23, 42, 0.06);
+
+  /* 毛玻璃统一滤镜 */
+  --glass-blur: blur(20px) saturate(180%);
+}
+
+/* ==========================================================================
+   基础元素与全局交互重置
+   ========================================================================== */
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  letter-spacing: -0.011em;
+}
+
+/* 按钮通用质感：平滑过渡、微圆角、触觉缩放反馈 */
+button {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  color: var(--text);
+  border-radius: 10px;
+  box-shadow: var(--shadow-xs);
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  outline: none;
+}
+
+button:hover:not(:disabled) {
+  background: var(--card-hover);
+  border-color: rgba(15, 23, 42, 0.16);
+  box-shadow: var(--shadow-sm);
+  color: var(--text);
+}
+
+button:active:not(:disabled) {
+  transform: scale(0.975);
+  background: rgba(15, 23, 42, 0.06);
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* 主按钮 (Primary Button) - 现代饱满墨绿 */
+.primary {
+  background: linear-gradient(135deg, #0f766e, #0d9488) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  box-shadow: 0 2px 10px rgba(15, 118, 110, 0.3) !important;
+  font-weight: 600 !important;
+}
+
+.primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #0d9488, #14b8a6) !important;
+  box-shadow: 0 4px 16px rgba(15, 118, 110, 0.38) !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.25) !important;
+}
+
+.primary:active:not(:disabled) {
+  transform: scale(0.97);
+  background: #115e59 !important;
+}
+
+.primary:disabled {
+  background: #cbd5e1 !important;
+  color: #94a3b8 !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  opacity: 0.7;
+}
+
+/* 幽灵/透明按钮 (Subtle) */
+.subtle {
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+.subtle:hover:not(:disabled) {
+  background: rgba(15, 23, 42, 0.05) !important;
+}
+
+/* 激活选中态 (Active State) - 优雅药丸高亮 */
+.active {
+  background: var(--primary-soft) !important;
+  color: var(--primary) !important;
+  border-color: var(--primary-border) !important;
+  font-weight: 600 !important;
+}
+
+/* ==========================================================================
+   顶栏 (Topbar) - 磨砂通透，层级清晰
+   ========================================================================== */
+
+.topbar {
+  height: 64px;
+  padding: 0 24px;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border-bottom: 1px solid var(--line);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+  gap: 16px;
+}
+
+.brand {
+  gap: 12px;
+}
+
+.brand-mark {
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: var(--primary-soft);
+  transform: none;
+}
+
+.brand-mark img {
+  width: 22px;
+  height: 22px;
+}
+
+.brand-name {
+  font-size: 18px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+
+.mode-label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  background: var(--primary-soft);
+  color: var(--primary);
+  border: 1px solid var(--primary-border);
+}
+
+.top-actions {
+  gap: 8px;
+}
+
+.top-actions .text-button {
+  height: 36px;
+  padding: 0 14px;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 9px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.top-actions .template-entry {
+  background: #f1f5f9;
+  color: var(--text);
+  border: 1px solid var(--line);
+  font-weight: 550;
+}
+
+.top-actions .template-entry:hover {
+  background: #e2e8f0;
+  border-color: rgba(15, 23, 42, 0.16);
+}
+
+.view-compact {
+  display: none !important;
+}
+
+.view-full {
+  display: inline-block !important;
+}
+
+.icon-button {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  border-radius: 9px;
+  border: 1px solid transparent;
+  background: transparent;
+  box-shadow: none;
+  color: var(--text-secondary);
+}
+
+.icon-button:hover:not(:disabled) {
+  background: rgba(15, 23, 42, 0.05);
+  color: var(--text);
+  border-color: transparent;
+}
+
+.icon-button .icon {
+  width: 20px;
+  height: 20px;
+}
+
+/* ==========================================================================
+   舞台与三维视口控制器
+   ========================================================================== */
+
+#stage {
+  top: 64px;
+  background: var(--bg);
+}
+
+.has-panel #stage {
+  right: 420px;
+}
+
+.camera-controls {
+  top: 80px;
+  left: 20px;
+  gap: 6px;
+}
+
+.camera-controls button {
+  width: 38px;
+  height: 38px;
+  font-size: 18px;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: var(--shadow-sm);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.camera-controls button:hover {
+  background: #ffffff;
+  color: var(--text);
+  box-shadow: var(--shadow-md);
+}
+
+.camera-controls .icon {
+  width: 18px;
+  height: 18px;
+}
+
+.view-label {
+  left: 20px;
+  bottom: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  padding: 5px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-xs);
+}
+
+/* ==========================================================================
+   底部建造工具坞 (Construction Dock) - Apple 分段胶囊坞
+   ========================================================================== */
+
+.editor-bottom {
+  bottom: 24px;
+  gap: 12px;
+  max-width: calc(100% - 32px);
+  padding-top: 42px;
+  align-items: flex-end;
+}
+
+/* 连接与操作状态指示条 */
+.connection {
+  top: 0;
+  font-size: 13px;
+  font-weight: 550;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  padding: 4px 14px;
+  border-radius: 9999px;
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-xs);
+  gap: 8px;
+}
+
+.connection.valid {
+  color: var(--green-text);
+  background: rgba(240, 253, 244, 0.95);
+  border-color: var(--green-border);
+}
+
+.connection .status-dot {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #e2e8f0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.connection.valid .status-dot {
+  background: var(--green);
+  color: #ffffff;
+}
+
+/* 浮动建路提示条 */
+.tool-hint {
+  bottom: 300px;
+  padding: 8px 16px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-md);
+  font-size: 13px;
+  gap: 10px;
+}
+
+.tool-hint strong {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--primary);
+}
+
+.tool-hint span {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.tool-hint[data-valid=false] {
+  border-color: var(--red-border);
+  background: rgba(254, 242, 242, 0.95);
+}
+
+.tool-hint[data-valid=false] strong {
+  color: var(--red);
+}
+
+/* 建造 Dock 容器 */
+.construction-dock {
+  width: 580px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-float);
+  overflow: hidden;
+}
+
+/* Dock 顶层 Tab：仿 iOS Segmented Control 质感 */
+.dock-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 6px;
+  background: #f1f5f9;
+  border-bottom: 1px solid var(--line);
+}
+
+.dock-tabs button {
+  flex: 1;
+  min-height: 34px;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  box-shadow: none;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.dock-tabs button:hover:not(.active) {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.dock-tabs button.active {
+  background: #ffffff !important;
+  color: var(--text) !important;
+  font-weight: 600 !important;
+  box-shadow: var(--shadow-xs) !important;
+  border-color: rgba(15, 23, 42, 0.06) !important;
+}
+
+.dock-tabs .dock-settings {
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+
+.dock-tabs .icon {
+  width: 17px;
+  height: 17px;
+}
+
+/* 中层工具栏 (选择、入口、道路、出口、拆除) */
+.construction-dock .toolbar {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 8px 10px;
+  gap: 6px;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+.construction-dock .tool {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 50px;
+  padding: 4px 6px;
+  font-size: 13px;
+  font-weight: 500;
+  gap: 3px;
+  border-radius: 9px;
+  border: 1px solid transparent;
+  background: transparent;
+  box-shadow: none;
+  color: var(--text-secondary);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.construction-dock .tool .icon {
+  width: 20px;
+  height: 20px;
+}
+
+.construction-dock .tool:hover:not(.active) {
+  background: var(--card-hover);
+  color: var(--text);
+}
+
+.construction-dock .tool.active {
+  background: var(--primary-soft) !important;
+  color: var(--primary) !important;
+  font-weight: 600 !important;
+  border-color: var(--primary-border) !important;
+}
+
+/* 设施工具栏 */
+.facility-toolbar {
+  padding: 8px 10px;
+  gap: 6px;
+}
+
+.facility-toolbar button {
+  min-height: 52px;
+  padding: 6px;
+  font-size: 13px;
+  border-radius: 9px;
+  border: 1px solid var(--line);
+  background: #ffffff;
+  box-shadow: var(--shadow-xs);
+  color: var(--text-secondary);
+}
+
+.facility-toolbar button:hover {
+  background: var(--card-hover);
+  color: var(--text);
+}
+
+.facility-toolbar button.active {
+  background: var(--primary-soft) !important;
+  color: var(--primary) !important;
+  border-color: var(--primary-border) !important;
+}
+
+.facility-toolbar .icon {
+  width: 20px;
+  height: 20px;
+}
+
+/* 道路线形选择条 (直线、曲线、自由、圆形) */
+.road-modes {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 0 10px 8px;
+  gap: 6px;
+}
+
+.road-modes button {
+  flex: 1 1 0 !important;
+  min-width: 0 !important;
+  min-height: 32px;
+  padding: 4px 6px;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: #f8fafc;
+  color: var(--muted);
+  box-shadow: none;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.road-modes button:hover:not(.active) {
+  background: #f1f5f9;
+  color: var(--text);
+}
+
+.road-modes button.active {
+  background: #ffffff !important;
+  color: var(--primary) !important;
+  border-color: var(--primary-border) !important;
+  font-weight: 600 !important;
+  box-shadow: var(--shadow-xs) !important;
+}
+
+.road-modes .icon {
+  width: 15px;
+  height: 15px;
+}
+
+/* 吸附与道路说明条 (Snap Strip) */
+.snap-strip {
+  padding: 6px 12px;
+  background: #f8fafc;
+  border-top: 1px solid var(--line);
+  font-size: 12px;
+  gap: 6px;
+}
+
+.snap-strip button {
+  min-height: 26px;
+  padding: 2px 8px;
+  font-size: 12px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  box-shadow: none;
+  color: var(--muted);
+}
+
+.snap-strip button:hover:not(.active) {
+  background: #e2e8f0;
+}
+
+.snap-strip button.active {
+  background: #ffffff !important;
+  border-color: var(--line) !important;
+  color: var(--text) !important;
+  box-shadow: var(--shadow-xs) !important;
+}
+
+.road-spec {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* “开始运行”主按钮：高度与 Dock 呼应，饱满圆角 */
+.start-button {
+  height: 48px;
+  min-width: 120px;
+  padding: 0 18px;
+  font-size: 15px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.start-button .icon {
+  width: 20px;
+  height: 20px;
+}
+
+/* ==========================================================================
+   右侧控制轨 (Command Rail) - 极简悬浮小药丸
+   ========================================================================== */
+
+.command-rail {
+  top: 80px;
+  right: 20px;
+  padding: 6px;
+  gap: 4px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-md);
+}
+
+.command-rail button {
+  min-width: 96px;
+  min-height: 36px;
+  padding: 6px 10px;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  box-shadow: none;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.command-rail button:hover {
+  background: rgba(15, 23, 42, 0.05);
+  color: var(--text);
+}
+
+.command-rail .icon {
+  width: 18px;
+  height: 18px;
+}
+
+/* ==========================================================================
+   运行态顶部动态仪表胶囊 (Status HUD & Cluster)
+   ========================================================================== */
+
+/* 主统计胶囊 (#hud) - 类似 Apple Watch / CarPlay 数据条 */
+.hud {
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 8px 20px;
+  gap: 20px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-md);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.hud:hover {
+  box-shadow: var(--shadow-lg);
+  transform: translateX(-50%) translateY(-1px);
+}
+
+.hud-item {
+  display: flex;
+  flex-direction: row;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.hud-item strong {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.hud .sep {
+  width: 1px;
+  height: 20px;
+  background: var(--line);
+}
+
+/* 交通通畅/缓行/拥堵指示条 (#traffic-status) - 紧随 HUD 下方，永不重叠 */
+.traffic-status {
+  top: 76px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 6px 16px;
+  font-size: 13px;
+  font-weight: 550;
+  gap: 14px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-sm);
+  color: var(--green-text);
+}
+
+.traffic-status[data-level=free] {
+  color: var(--green-text);
+  background: rgba(240, 253, 244, 0.94);
+  border-color: var(--green-border);
+}
+
+.traffic-status[data-level=slow] {
+  color: var(--amber-text);
+  background: rgba(254, 252, 232, 0.94);
+  border-color: var(--amber-border);
+}
+
+.traffic-status[data-level=congested] {
+  color: var(--red-text);
+  background: rgba(254, 242, 242, 0.94);
+  border-color: var(--red-border);
+}
+
+.traffic-status #actual-speed {
+  font-size: 12px;
+  font-weight: 500;
+  opacity: 0.85;
+}
+
+/* 仿真秒数与在途说明 (#sim-status) - 排在状态条下方，绝不被夹在中间 */
+.sim-status {
+  top: 114px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.78);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  padding: 3px 12px;
+  border-radius: 9999px;
+  border: 1px solid var(--line-light);
+  box-shadow: var(--shadow-xs);
+}
+
+/* 事故提示胶囊 (#incident-pill) */
+.incident-pill {
+  top: 76px;
+  right: 20px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 9999px;
+  background: rgba(254, 242, 242, 0.94);
+  border: 1px solid var(--red-border);
+  color: var(--red-text);
+  box-shadow: var(--shadow-sm);
+}
+
+/* 进车量胶囊 (#demand-pill) */
+.demand-pill {
+  left: 20px;
+  bottom: 64px;
+  top: auto;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-sm);
+  color: var(--text-secondary);
+}
+
+.demand-pill strong {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--primary);
+  margin: 0 4px;
+}
+
+/* 交通状态图例 (#traffic-legend) */
+.traffic-legend {
+  left: 20px;
+  bottom: 20px;
+  padding: 6px 12px;
+  gap: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-sm);
+  color: var(--muted);
+}
+
+.traffic-legend i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}
+
+.traffic-legend i.free { background: var(--green); }
+.traffic-legend i.slow { background: var(--amber); }
+.traffic-legend i.congested { background: var(--red); }
+
+/* ==========================================================================
+   运行底栏 (Runtime Toolbar) - 流线型播放器
+   ========================================================================== */
+
+.runtime-bottom {
+  bottom: 24px;
+}
+
+.runtime-toolbar {
+  padding: 6px;
+  gap: 4px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-float);
+  display: flex;
+  align-items: center;
+}
+
+.runtime-toolbar button {
+  height: 40px;
+  min-width: 44px;
+  padding: 0 12px;
+  font-size: 14px;
+  font-weight: 550;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: transparent;
+  box-shadow: none;
+  color: var(--text-secondary);
+}
+
+.runtime-toolbar button:hover:not(.active) {
+  background: rgba(15, 23, 42, 0.05);
+  color: var(--text);
+}
+
+.runtime-toolbar button.active {
+  background: #ffffff !important;
+  color: var(--primary) !important;
+  font-weight: 700 !important;
+  box-shadow: var(--shadow-sm) !important;
+  border-color: rgba(15, 23, 42, 0.08) !important;
+}
+
+.runtime-toolbar #pause-button {
+  background: var(--card-hover);
+  color: var(--text);
+  border-color: var(--line);
+}
+
+.runtime-toolbar .divider {
+  height: 22px;
+  width: 1px;
+  background: var(--line);
+  margin: 0 4px;
+}
+
+.runtime-toolbar .return-button {
+  margin-left: 4px;
+  background: #f1f5f9;
+  color: var(--text);
+  border: 1px solid var(--line);
+  gap: 6px;
+}
+
+.runtime-toolbar .return-button:hover {
+  background: #e2e8f0;
+}
+
+/* ==========================================================================
+   侧边设置面板 (Inspector / Drawer Panel) - Apple 风格抽屉
+   ========================================================================== */
+
+.panel {
+  top: 64px;
+  bottom: 0;
+  height: calc(100vh - 64px);
+  max-height: calc(100vh - 64px);
+  width: 420px;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border-left: 1px solid var(--line);
+  box-shadow: var(--shadow-float);
+}
+
+.panel-head {
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid var(--line-light);
+}
+
+.panel-head h2 {
+  font-size: 20px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  margin: 0;
+}
+
+/* Apple 经典圆形浅灰关闭按钮 */
+.panel-head .icon-button {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  border-radius: 50%;
+  background: #f1f5f9;
+  border: 1px solid var(--line);
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.panel-head .icon-button:hover {
+  background: #e2e8f0;
+  color: var(--text);
+  transform: rotate(90deg);
+}
+
+.panel-context {
+  margin: 12px 24px 0;
+  padding: 8px 12px;
+  background: var(--primary-soft);
+  color: var(--primary);
+  border: 1px solid var(--primary-border);
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 550;
+}
+
+.panel-body {
+  padding: 16px 24px 30px;
+  font-size: 14px;
+  color: var(--text-secondary);
+  overflow-y: auto;
+  overflow-x: hidden;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.panel h3 {
+  font-size: 15px;
+  font-weight: 650;
+  color: var(--text);
+  margin: 20px 0 10px;
+  letter-spacing: -0.01em;
+}
+
+.panel p {
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--muted);
+  margin: 8px 0;
+}
+
+/* 现代分组卡片 (Grouped Inset Style) */
+.settings-note {
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--muted);
+  margin: 12px 0;
+}
+
+/* 表单输入与选择控件 */
+.field {
+  margin: 16px 0;
+}
+
+.field label,
+.field-label {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 8px;
+  display: block;
+}
+
+.field input[type=number],
+.field input[type=text],
+.field select {
+  width: 100%;
+  min-height: 42px;
+  padding: 8px 14px;
+  font-size: 14px;
+  border-radius: 10px;
+  background: #f8fafc;
+  color: var(--text);
+  border: 1px solid var(--line);
+  box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.04);
+  transition: all 0.15s ease;
+}
+
+.field input[type=number]:focus,
+.field input[type=text]:focus,
+.field select:focus {
+  background: #ffffff;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-soft);
+  outline: none;
+}
+
+/* 现代化滑动条 (Range Slider) */
+.range-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.range-heading output {
+  font-size: 14px;
+  font-weight: 650;
+  color: var(--primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.field input[type=range] {
+  width: 100%;
+  height: 6px;
+  border-radius: 9999px;
+  background: #e2e8f0;
+  accent-color: var(--primary);
+  cursor: pointer;
+  margin: 8px 0;
+}
+
+/* iOS 风格平滑 Checkbox 样式 */
+.check-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 14px 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+  cursor: pointer;
+  user-select: none;
+}
+
+.check-row input[type=checkbox] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  border: 1.5px solid #cbd5e1;
+  background: #ffffff;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+  margin: 0;
+}
+
+.check-row input[type=checkbox]:checked {
+  background: var(--primary);
+  border-color: var(--primary);
+}
+
+.check-row input[type=checkbox]:checked::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 6px;
+  width: 5px;
+  height: 10px;
+  border: solid #ffffff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+/* 速度行 (Speed Row) */
+.speed-row {
+  border-top: 1px solid var(--line-light);
+  padding: 10px 0;
+  display: grid;
+  grid-template-columns: 75px 1fr 50px;
+  align-items: center;
+  gap: 12px;
+  font-size: 13.5px;
+}
+
+.speed-row output {
+  text-align: right;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--primary);
+}
+
+/* 菜单列表 (Menu List) */
+.menu-list {
+  gap: 6px;
+}
+
+.menu-list button {
+  min-height: 46px;
+  padding: 10px 14px;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 10px;
+  border: 1px solid var(--line-light);
+  background: #ffffff;
+  box-shadow: var(--shadow-xs);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.menu-list button:hover {
+  background: #f8fafc;
+  border-color: var(--line);
+  box-shadow: var(--shadow-sm);
+}
+
+.menu-list .icon {
+  width: 19px;
+  height: 19px;
+  color: var(--muted);
+}
+
+.menu-list .arrow {
+  margin-left: auto;
+  color: #cbd5e1;
+  font-size: 16px;
+}
+
+.menu-divider {
+  height: 1px;
+  background: var(--line);
+  margin: 12px 0;
+}
+
+/* 模板卡片列表 (Template List) */
+.template-list {
+  gap: 10px;
+}
+
+.template-list button {
+  min-height: 72px;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: #ffffff;
+  box-shadow: var(--shadow-xs);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.template-list button:hover {
+  background: #f8fafc;
+  border-color: rgba(15, 23, 42, 0.16);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+.template-list strong {
+  font-size: 15px;
+  font-weight: 650;
+  color: var(--text);
+}
+
+.template-list small {
+  font-size: 12.5px;
+  color: var(--muted);
+  line-height: 1.4;
+  margin-top: 4px;
+}
+
+.template-icon {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: var(--primary-soft);
+  color: var(--primary);
+  flex-shrink: 0;
+}
+
+.template-arrow {
+  margin-left: auto;
+  color: #cbd5e1;
+  font-size: 16px;
+}
+
+/* 统计列表 (Stats List) */
+.stats-list {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px 16px;
+  font-size: 13.5px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  margin: 14px 0;
+}
+
+.stats-list dt {
+  color: var(--muted);
+}
+
+.stats-list dd {
+  margin: 0;
+  font-weight: 600;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 拥堵说明卡片 (Congestion Card) */
+.congestion-card {
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--green-border);
+  background: rgba(240, 253, 244, 0.8);
+  margin: 0 0 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.congestion-card strong {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--green-text);
+}
+
+.congestion-card[data-level=slow] {
+  background: rgba(254, 252, 232, 0.85);
+  border-color: var(--amber-border);
+}
+
+.congestion-card[data-level=slow] strong {
+  color: var(--amber-text);
+}
+
+.congestion-card[data-level=congested] {
+  background: rgba(254, 242, 242, 0.85);
+  border-color: var(--red-border);
+}
+
+.congestion-card[data-level=congested] strong {
+  color: var(--red-text);
+}
+
+/* 面板底栏 (Panel Foot) */
+.panel-foot {
+  padding: 16px 24px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border-top: 1px solid var(--line);
+}
+
+.panel-foot button {
+  width: 100%;
+  min-height: 44px;
+  font-size: 15px;
+  border-radius: 12px;
+}
+
+/* ==========================================================================
+   车型车库 (Garage) 质感提升
+   ========================================================================== */
+
+.garage-title h1 {
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  margin: 0 0 8px;
+}
+
+.garage-title .accent {
+  width: 32px;
+  height: 3px;
+  background: var(--primary);
+  border-radius: 9999px;
+  margin: 0 auto 10px;
+}
+
+.garage-title {
+  pointer-events: auto;
+  text-align: center;
+  margin-top: 48px;
+}
+
+.garage-title h1 {
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  margin: 0;
+}
+
+.garage-title .accent {
+  width: 32px;
+  height: 3px;
+  background: var(--primary);
+  border-radius: 9999px;
+  margin: 10px auto 8px;
+}
+
+.garage-title p {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--muted);
+  margin: 0;
+}
+
+.garage-hint {
+  pointer-events: none;
+  position: absolute;
+  top: 76px;
+  right: 28px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+/* 底部车模栏：轻盈极简悬浮 Dock，消除生硬方框 */
+.garage-cards {
+  pointer-events: auto;
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 48px);
+  max-width: 980px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  border-radius: 20px;
+  box-shadow: 0 16px 40px -8px rgba(15, 23, 42, 0.08), 0 0 0 1px rgba(15, 23, 42, 0.04);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.garage-cards::-webkit-scrollbar {
+  display: none;
+}
+
+.garage-card {
+  flex: 1;
+  min-width: 88px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 4px 8px;
+  background: transparent;
+  border: 1.5px solid transparent;
+  border-radius: 14px;
+  box-shadow: none;
+  cursor: pointer;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.garage-card:hover {
+  background: rgba(15, 23, 42, 0.04);
+  transform: translateY(-2px);
+}
+
+.garage-card.active {
+  background: #ffffff !important;
+  border-color: rgba(16, 185, 129, 0.45) !important;
+  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.12), 0 1px 2px rgba(15, 23, 42, 0.04) !important;
+}
+
+.garage-card img {
+  width: 100%;
+  max-width: 100px;
+  height: 58px;
+  object-fit: contain;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  filter: drop-shadow(0 4px 8px rgba(15, 23, 42, 0.06));
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), filter 0.22s ease;
+}
+
+.garage-card:hover img {
+  transform: translateY(-3px) scale(1.05);
+  filter: drop-shadow(0 8px 14px rgba(15, 23, 42, 0.12));
+}
+
+.garage-card.active img {
+  transform: translateY(-2px) scale(1.02);
+  filter: drop-shadow(0 8px 16px rgba(16, 185, 129, 0.18));
+}
+
+.garage-card span {
+  font-size: 13px;
+  font-weight: 550;
+  color: var(--text-secondary);
+  margin-top: 2px;
+  transition: color 0.18s ease;
+}
+
+.garage-card.active span {
+  color: #065f46 !important;
+  font-weight: 650 !important;
+}
+
+/* ==========================================================================
+   自定义下拉选择器 (Apple / ChatGPT 质感)
+   ========================================================================== */
+
+.native-select-hidden {
+  position: absolute !important;
+  opacity: 0 !important;
+  width: 0 !important;
+  height: 0 !important;
+  pointer-events: none !important;
+  overflow: hidden !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+}
+
+.custom-select-wrapper {
+  position: relative;
+  display: block;
+  width: 100%;
+}
+
+.custom-select-trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+}
+
+.custom-select-trigger:hover {
+  background: #ffffff;
+  border-color: rgba(15, 23, 42, 0.2);
+}
+
+.custom-select-wrapper.is-open .custom-select-trigger,
+.custom-select-trigger:focus-visible {
+  background: #ffffff;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-soft);
+  outline: none;
+}
+
+.custom-select-label {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.custom-select-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  margin-left: 8px;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.custom-select-wrapper.is-open .custom-select-arrow {
+  transform: rotate(180deg);
+  color: var(--primary);
+}
+
+.custom-select-wrapper.is-disabled {
+  opacity: 0.55;
+  pointer-events: none;
+  cursor: not-allowed;
+}
+
+/* 下拉菜单浮层 (Apple 磨砂圆角) */
+.custom-select-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  max-height: 240px;
+  overflow-y: auto;
+  padding: 6px;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: var(--radius-md);
+  box-shadow: 0 14px 34px -4px rgba(15, 23, 42, 0.16), 0 4px 12px rgba(15, 23, 42, 0.06);
+  z-index: 9999;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-4px) scale(0.98);
+  transform-origin: top center;
+  transition: opacity 0.16s ease, transform 0.16s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.16s;
+  pointer-events: none;
+}
+
+/* 向上展开模式 */
+.custom-select-wrapper.pop-above .custom-select-menu {
+  top: auto;
+  bottom: calc(100% + 6px);
+  transform-origin: bottom center;
+}
+
+.custom-select-wrapper.is-open .custom-select-menu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+.custom-select-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  min-height: 36px;
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 13.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.14s ease;
+  user-select: none;
+}
+
+.custom-select-option:hover {
+  background: rgba(15, 23, 42, 0.05);
+  color: var(--text);
+}
+
+.custom-select-option.selected {
+  background: rgba(16, 185, 129, 0.1);
+  color: #065f46;
+  font-weight: 600;
+}
+
+.option-check {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary);
+  margin-left: 8px;
+}
+
+.custom-select-option.selected .option-check {
+  display: flex;
+}
+
+/* ==========================================================================
+   消息提示 (Toast) 与模态框 (Dialog)
+   ========================================================================== */
+
+.toast {
+  top: 80px;
+  padding: 10px 20px;
+  border-radius: 9999px;
+  background: rgba(15, 23, 42, 0.92);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: var(--shadow-lg);
+  font-size: 14px;
+  font-weight: 500;
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+}
+
+.toast.error {
+  background: rgba(185, 28, 28, 0.92);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.dialog-backdrop {
+  background: rgba(15, 23, 42, 0.35);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.dialog {
+  width: min(440px, 92%);
+  border-radius: 20px;
+  background: #ffffff;
+  border: 1px solid var(--line);
+  box-shadow: 0 24px 60px -12px rgba(15, 23, 42, 0.25);
+  padding: 24px;
+}
+
+.dialog h2 {
+  font-size: 19px;
+  font-weight: 650;
+  color: var(--text);
+  margin: 0 0 10px;
+}
+
+.dialog p {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--muted);
+  margin: 0;
+}
+
+.dialog-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.dialog-actions button {
+  min-height: 42px;
+  border-radius: 10px;
+  font-size: 14px;
+}
+
+/* ==========================================================================
+   移动端深度优化 (Mobile Ergonmics: <= 768px & <= 600px)
+   ========================================================================== */
+
+@media (max-width: 768px) {
+  .topbar {
+    height: 58px;
+    padding: 0 14px;
+  }
+
+  #stage {
+    top: 58px;
+  }
+
+  .panel {
+    top: 58px;
+    bottom: 0;
+    height: calc(100vh - 58px);
+    max-height: calc(100vh - 58px);
+    width: 100%;
+    border-left: none;
+    border-radius: 20px 20px 0 0;
+  }
+
+  .has-panel #stage {
+    right: 0;
+  }
+
+  /* 建造栏瘦身 */
+  .construction-dock {
+    width: 100%;
+    border-radius: 14px;
+  }
+
+  .editor-bottom {
+    bottom: 16px;
+    width: calc(100% - 20px);
+    max-width: 440px;
+    gap: 8px;
+    padding-top: 36px;
+  }
+
+  .construction-dock .tool {
+    height: 46px;
+    font-size: 12px;
+  }
+
+  .start-button {
+    height: 44px;
+    min-width: 100px;
+    font-size: 15px;
+  }
+
+  /* 运行态 HUD 紧凑化 */
+  .hud {
+    top: 12px;
+    padding: 6px 14px;
+    gap: 12px;
+  }
+
+  .hud-item strong {
+    font-size: 18px;
+  }
+
+  .traffic-status {
+    top: 64px;
+    padding: 4px 12px;
+    font-size: 12px;
+  }
+
+  .sim-status {
+    top: 96px;
+    font-size: 11px;
+  }
+
+  .runtime-bottom {
+    bottom: 16px;
+    width: calc(100% - 24px);
+    max-width: 420px;
+  }
+
+  .runtime-toolbar {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .runtime-toolbar button {
+    height: 38px;
+    min-width: 36px;
+    padding: 0 8px;
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 600px) {
+  .brand-name {
+    font-size: 16px;
+  }
+
+  .mode-label {
+    display: none;
+  }
+
+  .top-actions .top-save {
+    display: none;
+  }
+
+  .view-full {
+    display: none !important;
+  }
+
+  .view-compact {
+    display: inline-block !important;
+  }
+
+  .top-actions .undo-button,
+  .top-actions .redo-button {
+    display: none !important;
+  }
+
+  .editor-bottom {
+    bottom: 14px !important;
+    width: calc(100% - 24px) !important;
+    max-width: 420px !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 8px !important;
+    padding-top: 34px !important;
+  }
+
+  .construction-dock {
+    width: 100% !important;
+  }
+
+  .start-button {
+    width: 100% !important;
+    height: 46px !important;
+  }
+
+  .view-label {
+    display: none !important;
+  }
+
+  .snap-strip {
+    display: none !important;
+  }
+
+  /* 移动端收起 command-rail，避免挡住视线 */
+  .command-rail {
+    display: none !important;
+  }
+
+  .is-running .command-rail {
+    display: none !important;
+  }
+
+  .garage-cards {
+    bottom: 16px !important;
+    left: 12px !important;
+    right: 12px !important;
+    width: calc(100% - 24px) !important;
+    transform: none !important;
+    justify-content: flex-start !important;
+    overflow-x: auto !important;
+    padding: 6px 8px !important;
+    gap: 6px !important;
+  }
+
+  .garage-card {
+    min-width: 78px !important;
+    flex: 0 0 78px !important;
+    padding: 4px 2px 6px !important;
+  }
+
+  .garage-card img {
+    height: 48px !important;
+  }
+
+  .garage-card span {
+    font-size: 11.5px !important;
+  }
+
+  .traffic-legend {
+    bottom: 74px !important;
+    left: 14px !important;
+    padding: 4px 10px;
+    font-size: 11px;
+    gap: 8px;
+  }
+
+  .demand-pill {
+    bottom: 114px !important;
+    left: 14px !important;
+    font-size: 12px;
+    padding: 4px 10px;
+  }
+
+  .camera-controls {
+    top: 70px;
+    left: 12px;
+  }
+
+  .camera-controls button {
+    width: 34px;
+    height: 34px;
+  }
+}
+
+
+/* ==========================================================================
+   面板内专用组件精修 (车道配置、设施网格、天气、交通原理等)
+   ========================================================================== */
+
+/* 车道预设按钮组 */
+.lane-presets {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  margin: 12px 0;
+}
+
+.lane-presets button {
+  min-height: 36px;
+  padding: 6px 4px;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: #ffffff;
+  color: var(--text-secondary);
+}
+
+.lane-presets button:hover {
+  background: var(--card-hover);
+  border-color: rgba(15, 23, 42, 0.16);
+  color: var(--text);
+}
+
+/* 车道字段并排 */
+.lane-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.lane-summary {
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-size: 13px;
+  font-weight: 550;
+  border: 1px solid var(--primary-border);
+  margin: 12px 0;
+}
+
+/* 直行、左转、右转展开抽屉 */
+.turn-config {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin: 14px 0;
+  background: #f8fafc;
+}
+
+.turn-config summary {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--primary);
+  cursor: pointer;
+  user-select: none;
+  outline: none;
+  padding: 2px 0;
+}
+
+.turn-config h4 {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin: 14px 0 8px;
+}
+
+.turn-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 8px 0;
+  font-size: 13px;
+}
+
+.turn-row > span {
+  min-width: 60px;
+  color: var(--muted);
+}
+
+.turn-row select {
+  min-height: 36px;
+  padding: 4px 10px;
+  font-size: 13px;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+/* 道路类型选择列表 */
+.profile-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 10px 0;
+}
+
+.profile-list button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: #ffffff;
+  color: var(--text);
+  min-height: 44px;
+}
+
+.profile-list button strong {
+  margin-left: auto;
+  font-size: 14px;
+  font-weight: 650;
+  color: var(--primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.profile-list button:hover:not(.active) {
+  background: #f8fafc;
+}
+
+/* 设施网格 */
+.facility-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 14px 0;
+}
+
+.facility-grid button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 10px;
+  min-height: 90px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: #ffffff;
+  box-shadow: var(--shadow-xs);
+  color: var(--text);
+  font-size: 13.5px;
+  font-weight: 550;
+}
+
+.facility-grid button:hover:not(:disabled) {
+  background: #f8fafc;
+  border-color: rgba(15, 23, 42, 0.16);
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
+}
+
+.facility-symbol {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  font-size: 18px;
+  background: var(--primary-soft);
+  color: var(--primary);
+  border: 1px solid var(--primary-border);
+}
+
+.facility-symbol.stopSign {
+  background: #ef4444;
+  color: #ffffff;
+  border-radius: 50%;
+  font-size: 13px;
+  font-weight: 700;
+  border-color: #dc2626;
+}
+
+.facility-symbol.speedSign {
+  background: #ffffff;
+  color: #0f172a;
+  border-radius: 50%;
+  font-size: 13px;
+  font-weight: 700;
+  border: 2px solid #ef4444;
+}
+
+/* 规则快捷对 (全部遵守 / 全部违规) */
+.quick-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 12px 0 18px;
+}
+
+.quick-pair button {
+  padding: 10px;
+  font-size: 13.5px;
+  font-weight: 600;
+  border-radius: 10px;
+}
+
+.rule-good {
+  background: rgba(240, 253, 244, 0.95);
+  color: var(--green-text);
+  border: 1px solid var(--green-border);
+}
+
+.rule-good:hover {
+  background: #dcfce7;
+}
+
+.rule-danger {
+  background: rgba(254, 242, 242, 0.95);
+  color: var(--red-text);
+  border: 1px solid var(--red-border);
+}
+
+.rule-danger:hover {
+  background: #fee2e2;
+}
+
+/* 信号覆盖模式网格 */
+.signal-mode-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 10px 0;
+}
+
+.signal-mode-grid button {
+  padding: 10px 8px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  border-radius: 9px;
+  border: 1px solid var(--line);
+  background: #ffffff;
+}
+
+.signal-mode-grid button:hover:not(.active) {
+  background: #f8fafc;
+}
+
+.mode-lamp {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.mode-lamp.normal { background: var(--primary); }
+.mode-lamp.green { background: var(--green); }
+.mode-lamp.red { background: var(--red); }
+.mode-lamp.off { background: #94a3b8; }
+
+/* 天气选择网格 */
+.weather-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 12px 0 18px;
+}
+
+.weather-grid button {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
+  padding: 14px 10px;
+  font-size: 13.5px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: #ffffff;
+  box-shadow: var(--shadow-xs);
+}
+
+.weather-grid strong {
+  font-size: 24px;
+}
+
+.weather-grid button:hover:not(.active) {
+  background: #f8fafc;
+  box-shadow: var(--shadow-sm);
+}
+
+/* 事故注入按钮 */
+.incident-actions {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.incident-actions button {
+  font-size: 13px;
+  min-height: 40px;
+  padding: 8px;
+  border-radius: 9px;
+  border: 1px solid var(--amber-border);
+  color: var(--amber-text);
+  background: rgba(254, 252, 232, 0.85);
+  font-weight: 550;
+}
+
+.incident-actions button:hover:not(:disabled) {
+  background: #fef08a;
+}
+
+/* 实验记录卡片 */
+.record-card {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin: 12px 0;
+  background: #ffffff;
+  box-shadow: var(--shadow-xs);
+}
+
+.record-card h3 {
+  margin: 0 0 8px;
+  font-size: 14.5px;
+  font-weight: 650;
+  color: var(--text);
+}
+
+.record-card p {
+  margin: 4px 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.record-card button {
+  padding: 6px 12px;
+  margin-top: 10px;
+  font-size: 12.5px;
+  border-radius: 8px;
+}
+
+/* 交通原理展示 */
+.theory-tabs {
+  display: flex;
+  gap: 6px;
+  background: #f1f5f9;
+  padding: 4px;
+  border-radius: 10px;
+  margin-bottom: 14px;
+}
+
+.theory-tabs button {
+  flex: 1;
+  padding: 6px 8px;
+  min-height: 32px;
+  font-size: 13px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  box-shadow: none;
+  color: var(--muted);
+}
+
+.theory-tabs button.active {
+  background: #ffffff !important;
+  color: var(--text) !important;
+  font-weight: 600 !important;
+  box-shadow: var(--shadow-xs) !important;
+}
+
+.theory-animation {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  margin: 16px 0 12px;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.theory-animation svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.theory-variants {
+  display: flex;
+  gap: 8px;
+  margin: 10px 0;
+}
+
+.theory-variants button {
+  flex: 1;
+  padding: 8px;
+  font-size: 13px;
+  border-radius: 8px;
+}
+
+.theory-status {
+  font-size: 13.5px;
+  font-weight: 550;
+  line-height: 1.6;
+  color: var(--primary);
+  min-height: 48px;
+  margin: 10px 0;
+  padding: 10px 12px;
+  background: var(--primary-soft);
+  border-radius: 10px;
+  border: 1px solid var(--primary-border);
+}
+
+.theory-footer {
+  display: flex;
+  gap: 8px;
+}
+
+.theory-footer button {
+  flex: 1;
+  min-height: 40px;
+}
+
+/* 车辆检查器 (Vehicle Inspector) */
+.vehicle-inspector {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 18px;
+}
+
+.vehicle-inspector img {
+  width: 100%;
+  height: 140px;
+  object-fit: contain;
+  margin-bottom: 12px;
+  background: transparent !important;
+  border: none !important;
+  filter: drop-shadow(0 10px 20px rgba(15, 23, 42, 0.12));
+}
+
+.vehicle-inspector strong {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.wide-button {
+  width: 100%;
+  padding: 10px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 10px;
+  margin: 12px 0;
+}
+
+.danger-button {
+  border-color: var(--red-border);
+  color: var(--red-text);
+  background: rgba(254, 242, 242, 0.9);
+}
+
+.danger-button:hover {
+  background: #fee2e2;
+}
+
+.demand-presets {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  margin: 10px 0;
+}
+
+.demand-presets button {
+  padding: 8px 4px;
+  font-size: 12.5px;
+  border-radius: 8px;
+}

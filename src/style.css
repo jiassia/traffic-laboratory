@@ -1,17 +1,506 @@
-:root{color-scheme:dark;--bg:#11232d;--panel:#14252e;--card:#1b2c35;--line:#354750;--text:#f0efea;--muted:#b7c5c9;--amber:#ffbd4c;--green:#74edb3;--red:#ff8b7d;font-family:"Segoe UI","Microsoft YaHei",sans-serif;font-size:18px;font-weight:500}*{box-sizing:border-box}body{margin:0;overflow:hidden;background:var(--bg);color:var(--text)}button,input,select{font:inherit}button{color:inherit;cursor:pointer;touch-action:manipulation}button:disabled{opacity:.38;cursor:not-allowed}button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--amber);outline-offset:4px}button{border:1px solid var(--line);background:linear-gradient(150deg,#20323c,#172730);border-radius:12px;transition:background .15s,border-color .15s,transform .15s}button:hover:not(:disabled){background:#2b3d47;border-color:#8e9c9e}button:active:not(:disabled){transform:translateY(1px)}.primary{background:linear-gradient(120deg,#ffc761,#ffb739);border-color:#ffd27d;color:#14232c;font-weight:750}.primary:hover:not(:disabled){background:#ffd072;border-color:#ffe3aa}.subtle{background:transparent}.active{border-color:var(--amber)!important;color:var(--amber)!important;background:#263138!important}.icon{width:27px;height:27px;display:inline-block;vertical-align:middle;flex-shrink:0}.icon svg{width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}.topbar{position:absolute;z-index:10;top:0;left:0;right:0;height:78px;padding:0 28px;display:flex;align-items:center;justify-content:space-between;background:linear-gradient(110deg,#172932f5,#12222bee);border-bottom:1px solid #33444b;gap:18px}.brand{display:flex;gap:18px;align-items:center;white-space:nowrap}.brand-mark{width:46px;height:26px;display:flex;gap:6px;transform:skew(-30deg)}.brand-mark i{background:var(--text);width:17px;height:22px;display:block}.brand-name{font-size:28px;font-weight:750;letter-spacing:5px}.mode-label{font-size:19px;color:var(--amber);border:1px solid var(--amber);border-radius:6px;padding:3px 13px;letter-spacing:2px}.top-actions{display:flex;align-items:center;gap:12px}.icon-button{height:48px;min-width:48px;display:inline-flex;justify-content:center;align-items:center;border-color:transparent;background:transparent}.icon-button:hover{background:#263740}.top-actions .icon{width:29px;height:29px}.top-actions .text-button{padding:10px 16px;display:flex;gap:10px;align-items:center}#stage{position:absolute;inset:78px 0 0;transition:right .24s;overflow:hidden}#stage canvas{display:block;width:100%;height:100%;touch-action:none;outline:none}.has-panel #stage{right:430px}.scene-labels{position:absolute;inset:0;pointer-events:none;overflow:hidden}.map-label{position:absolute;font-size:21px;font-weight:750;white-space:nowrap;color:var(--green);text-shadow:0 2px 9px #07131b;transform:translate(-50%,-50%)}.map-label.sink{color:var(--amber)}.camera-controls{position:absolute;left:24px;top:100px;display:flex;flex-direction:column;gap:8px;z-index:5}.camera-controls button{width:46px;height:46px;font-size:28px;background:#172b35db}.view-label{position:absolute;bottom:22px;left:24px;color:#b9c7cb;font-size:18px;display:flex;gap:12px;align-items:center;pointer-events:none}.empty-state{position:absolute;top:43%;left:50%;transform:translate(-50%,-50%);text-align:center;width:min(540px,85%);pointer-events:none}.empty-state .empty-road{font-size:54px;color:#7595a4;opacity:.6;letter-spacing:12px}.empty-state h1{font-size:32px;letter-spacing:3px;font-weight:650;margin:20px 0 16px}.empty-state p{font-size:20px;line-height:1.85;color:var(--muted);margin:0 0 27px}.empty-state button{pointer-events:auto;padding:13px 25px;font-size:20px}.editor-bottom,.runtime-bottom{position:absolute;bottom:30px;left:50%;transform:translateX(-50%);z-index:5;display:flex;align-items:center;gap:22px;max-width:calc(100% - 30px)}.editor-bottom{padding-top:48px}.connection{position:absolute;left:50%;top:0;transform:translateX(-50%);display:flex;gap:12px;align-items:center;justify-content:center;white-space:nowrap;color:var(--muted);font-size:20px;pointer-events:none}.connection.valid{color:var(--green)}.connection .status-dot{width:27px;height:27px;border-radius:50%;display:grid;place-items:center;background:#2c414a;color:var(--muted);font-size:19px}.connection.valid .status-dot{background:var(--green);color:#17382b}.toolbar,.runtime-toolbar{display:flex;gap:10px;padding:12px;border:1px solid #40515a;border-radius:20px;background:linear-gradient(135deg,#182a33ed,#12232ced);box-shadow:0 12px 40px #07131b33;backdrop-filter:blur(15px)}.tool{width:88px;height:90px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;font-size:20px;font-weight:650}.tool .icon{width:33px;height:33px}.start-button{height:66px;min-width:158px;padding:0 24px;font-size:25px;display:flex;gap:16px;align-items:center;justify-content:center}.runtime-toolbar button{height:58px;min-width:66px;font-size:22px;padding:0 17px}.runtime-toolbar .return-button{margin-left:12px;display:flex;align-items:center;gap:11px}.runtime-toolbar .divider{height:38px;width:1px;background:#50616a;align-self:center;margin:0 3px}.hud{position:absolute;top:28px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:28px;z-index:4;white-space:nowrap;padding:12px 22px;background:#1427319c;border-radius:12px}.hud-item{display:flex;gap:13px;align-items:center;font-size:21px}.hud-item strong{color:var(--amber);font-size:32px;font-weight:700;font-variant-numeric:tabular-nums}.hud .sep{width:1px;height:29px;background:#70818a}.sim-status{position:absolute;top:108px;left:50%;transform:translateX(-50%);color:var(--muted);font-size:18px;white-space:nowrap}.panel{position:absolute;z-index:20;right:0;top:78px;bottom:0;width:430px;background:linear-gradient(135deg,#182b34,#10212b);border-left:1px solid #42545f;display:flex;flex-direction:column;box-shadow:-20px 0 60px #08172025}.panel-head{display:flex;align-items:center;justify-content:space-between;padding:24px 26px 14px}.panel-head h2{font-size:30px;margin:0;letter-spacing:2px}.panel-body{padding:8px 26px 26px;overflow:auto;flex:1;scrollbar-color:#4b616e transparent;scrollbar-width:thin}.panel-foot{padding:18px 26px 24px;border-top:1px solid #344852}.panel-foot button{width:100%;min-height:56px;font-size:21px}.panel h3{font-size:22px;font-weight:650;margin:26px 0 16px}.panel p{font-size:18px;line-height:1.7;color:var(--muted)}.field{margin:22px 0}.field label,.field-label{display:block;font-size:20px;margin-bottom:12px}.field input[type=number],.field input[type=text],.field select{width:100%;background:#1b2e38;color:var(--text);border:1px solid #4c606c;border-radius:9px;padding:11px 13px;min-height:51px}.field input[type=range]{width:100%;accent-color:var(--amber);min-height:28px;cursor:pointer}.range-heading{display:flex;justify-content:space-between;align-items:center;gap:15px}.range-heading output{color:var(--amber);font-size:24px;font-variant-numeric:tabular-nums}.check-row{display:flex;align-items:center;gap:14px;margin:21px 0;font-size:20px;line-height:1.6}.check-row input{appearance:none;width:28px;height:28px;flex-shrink:0;border:1px solid #79919e;border-radius:6px;background:#1d303a;cursor:pointer}.check-row input:checked{background:var(--green);border-color:var(--green)}.check-row input:checked:after{content:'✓';color:#10362a;font-weight:bold;display:block;text-align:center;line-height:26px}.speed-row{border-top:1px solid #314650;display:grid;grid-template-columns:80px 1fr 58px;align-items:center;gap:12px;padding:15px 0;font-size:19px}.speed-row input{width:100%;accent-color:var(--amber)}.speed-row output{text-align:right;color:var(--text);font-size:20px}.menu-list{display:flex;flex-direction:column;gap:10px}.menu-list button{padding:15px 17px;display:flex;align-items:center;gap:16px;font-size:21px;text-align:left;min-height:58px}.menu-list .arrow{margin-left:auto;color:#91a6b0}.menu-divider{height:1px;background:#3b505b;margin:14px 0}.profile-list{display:flex;flex-direction:column;gap:11px}.profile-list button{display:flex;align-items:center;gap:17px;padding:16px 18px;font-size:21px}.profile-list button strong{margin-left:auto}.settings-note{padding:15px;border:1px solid #405661;border-radius:10px;background:#1e343e;font-size:18px;line-height:1.7;color:#ccdade}.signal-preview{display:flex;justify-content:space-around;padding:22px 0;border:1px solid #3b515e;border-radius:12px;margin:20px 0;background:#10202a}.signal-axis{display:flex;flex-direction:column;gap:14px;align-items:center}.signal-lamps{display:flex;gap:8px;background:#08141a;padding:10px;border-radius:22px}.lamp{width:23px;height:23px;border-radius:50%;background:#2a3438;opacity:.4}.lamp.on{opacity:1;box-shadow:0 0 14px currentColor}.lamp.red{color:#ff6556}.lamp.red.on{background:#ff6556}.lamp.yellow{color:#ffbd4c}.lamp.yellow.on{background:#ffbd4c}.lamp.green{color:#65efab}.lamp.green.on{background:#65efab}.stats-list{display:grid;grid-template-columns:1fr auto;gap:18px;font-size:20px}.stats-list dt{color:var(--muted)}.stats-list dd{margin:0;font-variant-numeric:tabular-nums;color:var(--text)}.toast{position:absolute;z-index:100;top:95px;left:50%;transform:translateX(-50%);max-width:calc(100% - 35px);padding:16px 25px;background:#273f4c;border:1px solid #597787;box-shadow:0 12px 40px #06111980;border-radius:12px;font-size:20px;text-align:center;pointer-events:none}.toast.error{border-color:var(--red)}.hidden{display:none!important}.garage-overlay{position:absolute;inset:0;pointer-events:none}.garage-title{position:absolute;top:32px;left:50%;transform:translateX(-50%);text-align:center}.garage-title h1{font-size:42px;margin:0 0 12px;letter-spacing:4px}.garage-title .accent{width:50px;height:4px;background:var(--amber);margin:0 auto 15px;border-radius:3px}.garage-title p{font-size:20px;color:var(--muted);margin:0}.garage-cards{position:absolute;bottom:30px;left:26px;right:26px;display:flex;gap:12px;pointer-events:auto;overflow:auto;padding:5px 1px 8px;scrollbar-width:thin}.garage-card{flex:1;min-width:120px;border-radius:15px;padding:8px 7px 16px;background:#142630da}.garage-card img{width:100%;height:88px;object-fit:contain}.garage-card span{display:block;font-size:20px;font-weight:650}.garage-hint{position:absolute;right:28px;top:28px;color:var(--muted);font-size:18px}.dialog-backdrop{position:absolute;z-index:80;inset:0;background:#06131ba8;backdrop-filter:blur(8px);display:grid;place-items:center;padding:24px}.dialog{width:min(520px,100%);background:#182d38;border:1px solid #4e6876;border-radius:20px;box-shadow:0 20px 100px #0007;padding:30px}.dialog h2{font-size:28px;margin:0 0 18px}.dialog p{font-size:20px;line-height:1.7;color:#ccd7da}.dialog-actions{display:flex;gap:15px;margin-top:28px}.dialog-actions button{flex:1;min-height:55px;font-size:20px}.record-card{border:1px solid #3e5664;border-radius:13px;padding:18px;margin:16px 0;background:#172d38}.record-card h3{margin:0 0 12px;font-size:21px}.record-card p{margin:6px 0}.record-card button{padding:9px 14px;margin-top:14px;font-size:18px}.loading-note{position:absolute;z-index:7;bottom:170px;left:50%;transform:translateX(-50%);color:var(--muted);background:#132731dd;padding:9px 18px;border-radius:10px;font-size:18px;white-space:nowrap}@media(min-width:1600px){.topbar{height:88px}.panel{top:88px}#stage{top:88px}.brand-name{font-size:32px}.tool{width:96px;height:98px}.editor-bottom,.runtime-bottom{bottom:36px}}@media(max-width:900px){.brand-name{font-size:24px;letter-spacing:3px}.topbar{padding:0 18px;gap:10px}.brand{gap:13px}.brand-mark{width:35px;height:23px;gap:5px}.brand-mark i{width:14px;height:20px}.mode-label{font-size:18px;padding:3px 9px}.top-actions{gap:4px}.has-panel #stage{right:0}.panel{width:390px;max-width:100%}.hud{gap:18px;padding:10px 14px}.hud-item{font-size:19px;gap:9px}.hud-item strong{font-size:28px}.garage-card{min-width:120px}.garage-title h1{font-size:36px}.garage-hint{display:none}.view-label{bottom:16px;font-size:18px}.camera-controls{left:16px}}@media(max-width:600px){.topbar{height:72px;padding:0 15px}.brand{gap:11px}.brand-name{font-size:22px;letter-spacing:2px}.brand-mark{width:29px;gap:4px}.brand-mark i{width:11px;height:18px}.mode-label{padding:3px 7px;font-size:18px;letter-spacing:0}.top-actions .undo-button,.top-actions .redo-button{display:none}.top-actions .text-button{font-size:18px;padding:9px 12px}.top-actions .text-button .icon{display:none}#stage{top:72px}.panel{top:72px;width:100%;border-left:0}.panel-head{padding:22px 22px 12px}.panel-head h2{font-size:28px}.panel-body{padding:8px 22px 24px}.panel-foot{padding:14px 22px 18px}.editor-bottom{bottom:20px;flex-wrap:wrap;justify-content:center;width:calc(100% - 32px);max-width:430px;gap:13px;padding-top:44px}.toolbar{width:100%;justify-content:space-between;padding:9px;gap:7px;border-radius:18px}.tool{height:76px;flex:1;width:auto;min-width:0;font-size:19px;gap:6px}.tool .icon{width:29px;height:29px}.start-button{width:100%;height:57px;font-size:23px}.connection{font-size:18px;width:100%;white-space:normal;text-align:center;line-height:1.4;gap:8px}.connection .status-dot{width:24px;height:24px;flex-shrink:0}.empty-state{top:36%;width:90%}.empty-state h1{font-size:28px;margin:15px 0}.empty-state p{font-size:18px}.empty-state .empty-road{font-size:42px}.empty-state button{font-size:19px;padding:12px 19px}.camera-controls{top:90px;left:12px;gap:5px}.camera-controls button{width:40px;height:40px}.view-label{left:14px;bottom:250px;font-size:18px}.hud{top:15px;gap:13px;max-width:calc(100% - 18px);width:max-content}.hud-item{flex-direction:column;gap:4px;font-size:18px}.hud-item strong{font-size:27px}.hud .sep{height:35px}.sim-status{top:108px;font-size:18px}.runtime-bottom{width:calc(100% - 24px);bottom:22px;max-width:430px}.runtime-toolbar{width:100%;gap:6px;padding:9px;justify-content:center;border-radius:16px;flex-wrap:wrap}.runtime-toolbar button{font-size:20px;min-width:52px;padding:0 12px;height:52px;flex:1}.runtime-toolbar .return-button{margin:0;justify-content:center;flex-basis:100%;height:48px}.runtime-toolbar .divider{display:none}.garage-title{top:24px}.garage-title h1{font-size:32px}.garage-title p{font-size:18px;white-space:nowrap}.garage-cards{bottom:24px;left:15px;right:15px;gap:10px}.garage-card{min-width:120px;flex:0 0 120px}.garage-card img{height:80px}.garage-card span{font-size:19px}.loading-note{bottom:255px;font-size:18px}.toast{top:84px;font-size:18px;padding:13px 17px}.dialog{padding:25px}.dialog h2{font-size:25px}.dialog p{font-size:19px}.speed-row{grid-template-columns:80px 1fr 48px}.hidden-mobile{display:none!important}}@media(prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
-@media(max-width:600px){.toast{top:auto;bottom:244px;width:calc(100% - 36px);max-width:410px}.has-panel .toast{bottom:94px}.view-label{background:#142731bc;padding:5px 8px;border-radius:6px}} a{color:var(--green)}
-.traffic-status{position:absolute;z-index:4;top:122px;left:50%;transform:translateX(-50%);display:flex;gap:24px;align-items:center;font-size:20px;white-space:nowrap;padding:11px 20px;border:1px solid #355b50;background:#152e2be6;border-radius:12px;color:var(--green)}.traffic-status[data-level=slow]{color:var(--amber);border-color:#866f3c;background:#332d1ee6}.traffic-status[data-level=congested]{color:#ff9789;border-color:#a65448;background:#3d2424ed}.traffic-status #actual-speed{color:#d2dcde;font-size:18px}.sim-status{top:88px}.traffic-legend{position:absolute;left:24px;bottom:130px;display:flex;align-items:center;gap:15px;font-size:18px;background:#142731eb;padding:10px 15px;border:1px solid #3b515c;border-radius:10px;z-index:4}.traffic-legend span{display:flex;align-items:center;gap:8px}.traffic-legend i{width:13px;height:13px;border-radius:3px}.traffic-legend i.free{background:var(--green)}.traffic-legend i.slow{background:var(--amber)}.traffic-legend i.congested{background:#ff6556}.traffic-legend button{padding:0;border:none;background:transparent}.traffic-legend .icon{width:24px;height:24px}.demand-pill{position:absolute;right:24px;top:100px;z-index:4;padding:13px 17px;font-size:19px;background:#152a35eb}.demand-pill strong{font-size:23px;color:var(--amber);margin:0 6px}.road-badge{position:absolute;transform:translate(-50%,-100%);pointer-events:none;white-space:nowrap;border-radius:8px;padding:7px 12px;border:1px solid #e99e52;background:#453420ec;color:#ffdb9e;font-size:18px;box-shadow:0 5px 20px #0004}.road-badge[data-level=congested]{color:#fff0eb;background:#75332bef;border-color:#ff8a75}.congestion-card{padding:18px;border:1px solid #406a5b;border-radius:12px;background:#193c33;margin:0 0 22px;display:flex;flex-direction:column;gap:10px;font-size:19px;line-height:1.6}.congestion-card strong{font-size:27px;color:var(--green)}.congestion-card[data-level=slow]{background:#443821;border-color:#806637}.congestion-card[data-level=slow] strong{color:var(--amber)}.congestion-card[data-level=congested]{background:#532a27;border-color:#9c5146}.congestion-card[data-level=congested] strong{color:#ff9a86}.demand-presets{display:grid;grid-template-columns:1fr 1fr;gap:10px}.demand-presets button{padding:12px 8px;font-size:20px}
-@media(max-width:1100px){.demand-pill{top:181px;font-size:18px;padding:10px 12px}.runtime-toolbar{gap:7px}.runtime-toolbar button{min-width:54px;padding:0 14px}.runtime-toolbar .return-button{margin-left:0}}
-@media(max-width:600px){.traffic-status{top:125px;gap:5px;flex-direction:column;font-size:19px;max-width:calc(100% - 24px);padding:8px 16px}.traffic-status #actual-speed{font-size:18px}.sim-status{top:101px}.demand-pill{top:198px;right:12px;font-size:18px;padding:8px 10px}.demand-pill strong{font-size:21px}.traffic-legend{bottom:160px;left:12px;gap:11px;padding:7px 10px;font-size:18px}.runtime-toolbar{gap:5px}.runtime-toolbar button{min-width:42px;padding:0 7px;font-size:19px}.runtime-toolbar .return-button{flex-basis:100%}.road-badge{font-size:18px;padding:5px 9px}.view-label{display:none}.toast{bottom:216px}.hud{gap:10px}}
-@media(max-width:600px){.camera-controls{top:305px}.road-badge{max-width:170px}}
-/* Construction and simulation controls, version 2. */
-:root{--cyan:#86ded1;--panel:#152b35;--line:#3c5662;font-size:19px}
-.topbar{height:82px;background:linear-gradient(110deg,#18303bfa,#10212bf5);box-shadow:0 3px 20px #06151b40}.brand-name{letter-spacing:3px}.top-actions .text-button{font-size:19px}.top-actions{gap:10px}#stage{top:82px}.panel{top:82px;width:450px}.has-panel #stage{right:450px}.panel-head{padding-top:26px}.panel-body p{font-size:19px}.panel-context{margin:0 26px 15px;padding:11px 14px;background:#303b29;color:#d9dea8;border-radius:8px;font-size:18px}.panel-foot{background:#122630}.panel-body button{min-height:46px}.wide-button{width:100%;padding:14px 18px;font-size:20px;margin:18px 0}.danger-button{border-color:#ad6659;color:#ffb1a0;background:#452b29}.construction-dock{width:650px;border:1px solid #466370;border-radius:17px;background:linear-gradient(140deg,#1a323eea,#122832f5);box-shadow:0 15px 45px #04111970;backdrop-filter:blur(18px);overflow:hidden}.dock-tabs{display:flex;gap:4px;border-bottom:1px solid #38535f;padding:8px 10px;background:#10242dc9}.dock-tabs button{display:flex;gap:9px;align-items:center;justify-content:center;padding:8px 14px;font-size:19px;min-height:43px;background:transparent;border-color:transparent}.dock-tabs .dock-settings{margin-left:auto}.dock-tabs .icon{width:23px;height:23px}.construction-dock .toolbar{background:transparent;border:0;border-radius:0;padding:10px 13px;box-shadow:none;backdrop-filter:none;justify-content:center;gap:10px}.construction-dock .tool{width:auto;flex:1;height:67px;font-size:19px;gap:4px;border-radius:9px;background:#203a47;border-color:#3a5260}.construction-dock .tool .icon{height:27px;width:27px}.construction-dock button.active{color:var(--cyan)!important;border-color:#8ad9c9!important;background:#24433f!important}.road-modes{display:flex;gap:8px;padding:0 13px 10px}.road-modes button{display:flex;align-items:center;justify-content:center;gap:9px;flex:1;padding:10px 8px;border-radius:9px;font-size:19px;min-height:43px;background:#162e39}.road-modes .icon{height:23px;width:23px}.snap-strip{display:flex;align-items:center;gap:7px;padding:9px 13px;background:#112731c9;border-top:1px solid #304b58;font-size:18px}.snap-strip>span:first-child{color:#b7cbd3;margin-right:3px}.snap-strip button{padding:5px 10px;min-height:34px;border-radius:7px;font-size:18px;background:transparent}.road-spec{margin-left:auto;color:#c2d2d8;font-size:18px}.facility-toolbar{display:grid;grid-template-columns:repeat(6,1fr);gap:9px;padding:14px}.facility-toolbar button{padding:11px 6px;display:flex;flex-direction:column;align-items:center;gap:9px;min-height:90px;font-size:18px}.facility-toolbar .icon{height:29px;width:29px}.editor-bottom{bottom:26px;gap:19px;padding-top:42px}.start-button{border-radius:13px;min-width:145px;height:66px}.connection{font-size:19px;top:0}.tool-hint{position:absolute;z-index:4;left:50%;bottom:321px;transform:translateX(-50%);display:flex;align-items:center;gap:18px;padding:12px 19px;border:1px solid #395967;border-radius:11px;background:#102832e8;box-shadow:0 6px 25px #05141c40;max-width:calc(100% - 190px);white-space:nowrap;pointer-events:none}.tool-hint strong{font-size:20px;color:var(--cyan)}.tool-hint span{font-size:18px;color:#d3e0e3}.tool-hint[data-valid=false]{border-color:#d87f6b}.tool-hint[data-valid=false] strong{color:#ff9d89}.command-rail{position:absolute;top:117px;right:20px;z-index:5;display:flex;flex-direction:column;gap:7px;padding:8px;border:1px solid #3e5a67;border-radius:14px;background:#142b36e8;backdrop-filter:blur(15px)}.command-rail button{min-width:108px;padding:12px 10px;font-size:18px;display:flex;align-items:center;gap:10px;border-color:transparent;background:transparent}.command-rail button:hover{background:#2c4654}.command-rail .icon{width:25px;height:25px}.has-panel .command-rail{display:none}.has-panel .tool-hint{max-width:calc(100% - 30px);white-space:normal;width:540px}.has-panel .editor-bottom{gap:10px;max-width:calc(100% - 30px)}.has-panel .construction-dock{width:580px}.has-panel .start-button{min-width:115px;padding:0 13px}.has-panel .snap-strip .road-spec{display:none}.view-label{font-size:18px;bottom:14px;opacity:.85}.camera-controls{top:110px;gap:8px}.camera-controls button{width:44px;height:44px;font-size:24px}.camera-controls .icon{width:24px;height:24px}.empty-state{top:34%;width:540px}.empty-state h1{font-size:32px}.empty-state p{font-size:20px}.empty-state .empty-road{font-size:46px}.empty-state button{font-size:20px}.facility-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:22px 0}.facility-grid button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:13px;padding:18px 10px;min-height:118px;font-size:20px}.facility-symbol{width:45px;height:45px;display:grid;place-items:center;border:1px solid #78959f;border-radius:10px;font-size:29px;color:#c4e9e5}.facility-symbol.stopSign{background:#9b453b;color:#fff;border-radius:50%;font-size:23px}.facility-symbol.speedSign{background:#dbe6e1;color:#19303b;border-radius:50%;font-size:21px}.facility-symbol.trafficLight{font-size:45px;color:var(--green);background:#18252a}.quick-pair{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:16px 0 26px}.quick-pair button{padding:16px 8px;font-size:21px}.rule-good{color:#a6f0c9;border-color:#5d927e;background:#1e3e34}.rule-danger{color:#ffb09d;border-color:#a46254;background:#462c28}.signal-mode-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.signal-mode-grid button{padding:15px 8px;display:flex;gap:10px;align-items:center;justify-content:center;font-size:20px}.mode-lamp{display:inline-block;width:13px;height:13px;background:var(--amber);border-radius:50%}.mode-lamp.red{background:#ff7464}.mode-lamp.green{background:var(--green)}.mode-lamp.off{background:#8699a3}.weather-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:16px 0 24px}.weather-grid button{display:flex;flex-direction:column;gap:12px;align-items:center;padding:17px 12px;font-size:20px}.weather-grid strong{font-size:35px;color:#c4e5ef}.incident-actions{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:17px 0}.incident-actions button{font-size:19px;min-height:56px;padding:10px 6px;border-color:#8d5b48;color:#ffcba6;background:#392d25}.vehicle-inspector{display:flex;flex-direction:column;align-items:center;margin-bottom:25px;font-size:24px}.vehicle-inspector img{width:100%;height:190px;object-fit:contain;border-radius:12px;margin-bottom:17px;background:#1b3542}.incident-pill{position:absolute;right:20px;top:80px;border-color:#a06353;color:#ffd0b9;background:#4b2c25;z-index:5;padding:10px 17px;font-size:19px}.toast{font-size:19px;top:auto;bottom:350px;padding:13px 21px;background:#284a59f5}.has-panel .toast{bottom:90px}.runtime-bottom{bottom:27px}.traffic-legend{bottom:125px}.hud{top:24px}.sim-status{top:84px}.traffic-status{top:116px}.demand-pill{top:166px;right:auto;left:24px;padding:10px 14px;font-size:19px}.traffic-legend button{min-height:0}.panel-body .settings-note{font-size:19px}.panel-body .field label{font-size:21px}.panel-body .field input[type=range]{height:32px}.panel-body .field input[type=number],.panel-body .field select{font-size:21px;min-height:53px}
-@media(max-width:1200px){.brand-name{font-size:26px;letter-spacing:2px}.top-actions .top-save{display:none}.construction-dock{width:570px}.dock-tabs button{padding:8px 11px}.road-spec{display:none}.editor-bottom{gap:13px}.tool-hint{max-width:calc(100% - 140px);gap:12px}.command-rail{right:12px}.command-rail button{min-width:45px;padding:12px 8px;justify-content:center}.command-rail span:not(.icon){display:none}.has-panel .editor-bottom{max-width:calc(100% - 20px);flex-wrap:wrap;width:550px;bottom:18px}.has-panel .construction-dock{width:100%}.has-panel .start-button{height:51px;width:100%}.has-panel .tool-hint{bottom:365px}.has-panel .connection{font-size:18px}}
-@media(max-width:900px){.has-panel #stage{right:0}.panel{width:420px;max-width:100%}.has-panel .editor-bottom{width:calc(100% - 24px)}.top-actions .text-button{font-size:18px;padding:8px 10px}.command-rail span:not(.icon){display:none}.tool-hint{white-space:normal;max-width:calc(100% - 140px)}.construction-dock{width:530px}.start-button{min-width:125px;padding:0 16px;font-size:23px}}
-@media(max-width:600px){.topbar{height:72px;padding:0 12px;gap:8px}.brand-name{font-size:21px;letter-spacing:1px}.brand{gap:9px}.brand-mark{width:25px}.mode-label{font-size:18px;padding:3px 6px}.top-actions{gap:2px}.top-actions .text-button{font-size:18px;min-width:43px;padding:8px}.top-actions #view-toggle{font-size:18px;max-width:48px;overflow:hidden;white-space:nowrap}#stage{top:72px}.panel{top:72px;width:100%}.panel-context{font-size:18px;margin:0 22px 12px}.construction-dock{width:100%;border-radius:14px}.dock-tabs{padding:5px 6px;gap:0}.dock-tabs button{padding:8px 11px;font-size:18px;gap:5px;min-height:40px}.dock-tabs .icon{display:none}.dock-tabs .dock-settings{margin-left:auto;padding:8px}.editor-bottom{bottom:14px;width:calc(100% - 20px);max-width:440px;gap:10px;padding-top:35px}.connection{font-size:18px;top:0}.construction-dock .toolbar{padding:8px;gap:6px}.construction-dock .tool{height:65px;font-size:18px;padding:5px 3px;min-width:0}.construction-dock .tool .icon{width:26px;height:26px}.road-modes{gap:5px;padding:0 8px 8px}.road-modes button{min-width:0;min-height:41px;padding:8px 6px;font-size:18px;gap:5px}.road-modes .icon{width:20px;height:20px}.snap-strip{display:none}.start-button{width:100%;height:53px;font-size:23px}.tool-hint{bottom:324px;width:calc(100% - 24px);max-width:440px;white-space:normal;flex-direction:column;align-items:flex-start;gap:5px;padding:10px 14px;border-radius:10px}.tool-hint strong{font-size:19px}.tool-hint span{font-size:18px;line-height:1.45}.command-rail{right:10px;top:12px;flex-direction:row;gap:3px;padding:5px;border-radius:11px}.command-rail button{padding:9px;min-width:42px;min-height:43px}.command-rail .icon{height:25px;width:25px}.command-rail span:not(.icon){display:none}.is-running .command-rail{top:258px;right:10px;flex-direction:column;gap:4px}.camera-controls{top:280px;left:12px;gap:6px}.camera-controls button{height:40px;width:40px}.empty-state{top:27%;width:calc(100% - 35px)}.empty-state .empty-road{display:none}.empty-state h1{font-size:28px;margin:10px 0}.empty-state p{font-size:19px;line-height:1.65;margin-bottom:18px}.empty-state button{font-size:19px;padding:11px 18px}.facility-toolbar{grid-template-columns:repeat(3,1fr);gap:7px;padding:10px}.facility-toolbar button{min-height:72px;font-size:18px;padding:8px}.facility-toolbar .icon{height:25px;width:25px}.has-panel .tool-hint{display:none}.has-panel .editor-bottom{display:none}.is-facility-tool .tool-hint{bottom:343px}.toast{bottom:337px;top:auto;font-size:18px;max-width:calc(100% - 28px);width:auto;white-space:normal}.is-running .toast{bottom:213px}.has-panel .toast{bottom:89px}.top-actions .undo-button,.top-actions .redo-button{display:none}.incident-pill{top:254px;left:12px;right:auto;max-width:285px;font-size:18px;padding:9px 11px}.demand-pill{top:198px;left:auto;right:12px;font-size:18px}.traffic-status{top:125px}.sim-status{top:101px}.hud{top:15px}.runtime-bottom{bottom:20px}.traffic-legend{bottom:160px}.garage-title h1{font-size:32px}.panel-head h2{font-size:29px}.panel-body p{font-size:19px}.panel-foot button{font-size:21px}.panel-body{padding-bottom:30px}}
-@media(prefers-reduced-motion:reduce){.toast,.construction-dock{backdrop-filter:none}}
-.construction-dock .tool{height:53px;flex-direction:row;gap:8px}.construction-dock .toolbar{padding-top:8px;padding-bottom:8px}.dock-tabs{padding-top:5px;padding-bottom:5px}.dock-tabs button{min-height:40px;padding-top:7px;padding-bottom:7px}.snap-strip{display:none!important}.toast{top:99px;bottom:auto}.is-running .toast{top:auto;bottom:155px}.intro-note{display:block;font-size:18px;color:#a7c2ce;pointer-events:none}.tool-hint{pointer-events:none}.empty-state .intro-note{pointer-events:none}
-@media(max-width:600px){.construction-dock .tool{height:65px;flex-direction:column;gap:5px}.toast{top:127px;bottom:auto}.is-running .toast{top:auto;bottom:213px}.has-panel .toast{top:auto;bottom:90px}.empty-state{top:25%}.intro-note{font-size:18px}.top-actions #view-toggle{max-width:52px}}
-.demand-pill{top:auto;bottom:190px;left:24px;right:auto}.incident-pill{top:48px}.top-actions #view-toggle{white-space:nowrap}
-@media(max-width:600px){.demand-pill{top:198px;bottom:auto;left:auto;right:12px}.incident-pill{top:254px;left:12px;right:auto}.top-actions #view-toggle{max-width:none;min-width:44px;overflow:visible;padding:8px}.is-running .traffic-legend{max-width:calc(100% - 24px)}}
+/* ==========================================================================
+   堵车实验室 · 核心布局骨架与通用组件基准
+   ========================================================================== */
+
+:root {
+  color-scheme: light;
+  --bg: #f8fafc;
+  --panel: #ffffff;
+  --card: #ffffff;
+  --line: rgba(15, 23, 42, 0.08);
+  --text: #0f172a;
+  --muted: #64748b;
+  --amber: #f59e0b;
+  --green: #10b981;
+  --red: #ef4444;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-size: 15px;
+  font-weight: 400;
+  box-sizing: border-box;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+button, input, select, textarea {
+  font: inherit;
+}
+
+button {
+  color: inherit;
+  cursor: pointer;
+  touch-action: manipulation;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* 图标容器基础 */
+.icon {
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+
+.icon svg {
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* 顶部栏 */
+.topbar {
+  position: absolute;
+  z-index: 10;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.top-actions {
+  display: flex;
+  align-items: center;
+}
+
+/* 主画布视口舞台 */
+#stage {
+  position: absolute;
+  inset: 64px 0 0;
+  overflow: hidden;
+  transition: right 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+#stage canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  outline: none;
+}
+
+/* 场景内悬浮文字标签（入口、出口） */
+.scene-labels {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.map-label {
+  position: absolute;
+  font-size: 15px;
+  font-weight: 700;
+  white-space: nowrap;
+  color: var(--primary);
+  text-shadow: 0 1px 3px rgba(255, 255, 255, 0.9), 0 0 8px rgba(255, 255, 255, 0.8);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.map-label.sink {
+  color: var(--amber-text);
+}
+
+/* 视口与相机控制 */
+.camera-controls {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  z-index: 5;
+}
+
+.view-label {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 4;
+}
+
+/* 空画布提示 */
+.empty-state {
+  position: absolute;
+  top: 40%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  width: min(500px, 88%);
+  pointer-events: none;
+}
+
+.empty-state h1 {
+  font-size: 24px;
+  font-weight: 650;
+  margin: 14px 0 10px;
+}
+
+.empty-state p {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--muted);
+  margin: 0 0 20px;
+}
+
+.empty-state button {
+  pointer-events: auto;
+  padding: 10px 20px;
+  font-size: 14px;
+}
+
+/* 底部编辑与运行交互底栏 */
+.editor-bottom,
+.runtime-bottom {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 6;
+  display: flex;
+  align-items: center;
+}
+
+.toolbar,
+.runtime-toolbar {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.connection {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.tool-hint {
+  position: absolute;
+  z-index: 6;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+/* 右侧控制轨 */
+.command-rail {
+  position: absolute;
+  z-index: 7;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 运行态 HUD 仪表指标 */
+.hud {
+  position: absolute;
+  z-index: 8;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+}
+
+.sim-status {
+  position: absolute;
+  z-index: 7;
+  white-space: nowrap;
+}
+
+.traffic-status {
+  position: absolute;
+  z-index: 8;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+}
+
+.incident-pill {
+  position: absolute;
+  z-index: 8;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.demand-pill {
+  position: absolute;
+  z-index: 7;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.traffic-legend {
+  position: absolute;
+  z-index: 7;
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.traffic-legend button {
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  display: inline-flex;
+}
+
+.traffic-legend .icon {
+  width: 16px;
+  height: 16px;
+  color: var(--muted);
+}
+
+/* 道路拥堵徽标 */
+.road-badge {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  pointer-events: none;
+  white-space: nowrap;
+  border-radius: 8px;
+  padding: 4px 10px;
+  border: 1px solid var(--amber-border);
+  background: rgba(254, 252, 232, 0.95);
+  color: var(--amber-text);
+  font-size: 12px;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.road-badge[data-level=congested] {
+  color: var(--red-text);
+  background: rgba(254, 242, 242, 0.95);
+  border-color: var(--red-border);
+}
+
+/* 侧边面板 (Drawer / Panel) */
+.panel {
+  position: absolute;
+  z-index: 20;
+  top: 64px;
+  right: 0;
+  bottom: 0;
+  height: calc(100vh - 64px);
+  max-height: calc(100vh - 64px);
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease;
+}
+
+.panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.panel-body {
+  overflow-y: auto;
+  overflow-x: hidden;
+  flex: 1 1 auto;
+  min-height: 0;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(15, 23, 42, 0.2) transparent;
+}
+
+.panel-body::-webkit-scrollbar {
+  width: 5px;
+}
+
+.panel-body::-webkit-scrollbar-thumb {
+  background: rgba(15, 23, 42, 0.15);
+  border-radius: 9999px;
+}
+
+.panel-foot {
+  flex-shrink: 0;
+}
+
+/* 车型车库 */
+.garage-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 15;
+}
+
+.garage-title {
+  position: absolute;
+  top: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  pointer-events: none;
+}
+
+.garage-hint {
+  position: absolute;
+  right: 24px;
+  top: 24px;
+  color: var(--muted);
+  font-size: 13px;
+  pointer-events: none;
+}
+
+.garage-cards {
+  position: absolute;
+  display: flex;
+  pointer-events: auto;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.garage-cards::-webkit-scrollbar {
+  display: none;
+}
+
+.garage-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.garage-card img {
+  width: 100%;
+  object-fit: contain;
+}
+
+/* 交通信号灯预览 */
+.signal-preview {
+  display: flex;
+  justify-content: space-around;
+  padding: 16px 0;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  margin: 16px 0;
+  background: #f8fafc;
+}
+
+.signal-axis {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+  font-size: 13px;
+  font-weight: 550;
+  color: var(--text-secondary);
+}
+
+.signal-lamps {
+  display: flex;
+  gap: 8px;
+  background: #1e293b;
+  padding: 8px 12px;
+  border-radius: 20px;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+.lamp {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #334155;
+  opacity: 0.35;
+  transition: all 0.15s ease;
+}
+
+.lamp.on {
+  opacity: 1;
+  box-shadow: 0 0 12px currentColor;
+}
+
+.lamp.red { color: #ef4444; }
+.lamp.red.on { background: #ef4444; }
+.lamp.yellow { color: #f59e0b; }
+.lamp.yellow.on { background: #f59e0b; }
+.lamp.green { color: #10b981; }
+.lamp.green.on { background: #10b981; }
+
+/* 弹窗与遮罩 */
+.dialog-backdrop {
+  position: absolute;
+  z-index: 100;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+}
+
+.toast {
+  position: absolute;
+  z-index: 120;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: calc(100% - 32px);
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.loading-note {
+  position: absolute;
+  z-index: 5;
+  bottom: 140px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.92);
+  padding: 6px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* 动效降级支持 */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+    scroll-behavior: auto !important;
+  }
+}
