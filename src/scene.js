@@ -8,6 +8,7 @@ import {WorldDetails} from './world-details.js';
 import {junctionLayout} from './junction-layout.mjs';
 import {pavementFootprints,dominantThroughPair} from './junction-design.mjs';
 import {terminalIds,terminalLabel} from './terminals.mjs';
+import {roadTurnarounds} from './turnarounds.mjs';
 
 export const assetUrl = path => new URL(`./assets/${path}`, document.baseURI).href;
 const BG=0xeaf0e8, ROAD=0x1d2428, EDGE=0x405057, AMBER=0xffbd4c, GREEN=0x74edb3;
@@ -110,6 +111,14 @@ export class TrafficScene {
       for(const c of branches.values())paint(c,false);
     }
   }
+  turnaroundGuidance(pads,color){
+    for(const pad of pads){
+      for(const edge of pad.outline)this.pathLine(edge,color,.50);
+      const guide=this.pathLine(pad.guide,0xe3e8e1,.51,true);guide.material.dashSize=1.4;guide.material.gapSize=1.2;
+      const path=makePath(pad.guide),tip=pathPointAt(path,path.length*.67),dx=tip.tangentX,dz=tip.tangentZ;
+      this.pathLine([{x:tip.x-dx*1.4-dz*.8,z:tip.z-dz*1.4+dx*.8},tip,{x:tip.x-dx*1.4+dz*.8,z:tip.z-dz*1.4-dx*.8}],0xe3e8e1,.54);
+    }
+  }
   batchRoadLines(){
     const groups=new Map();
     for(const line of [...this.roadGroup.children]){
@@ -133,17 +142,24 @@ export class TrafficScene {
     this.pavementMesh(curbs,materials.edge,.25);this.pavementMesh(pavement,materials.road,.43);this.pavementGeometry={polygons:pavement,connections};
     const trim=(road,id)=>layout.byNode.get(id)?.arms.find(a=>a.roadId===road.id)?.trim||0;
     for(const road of network.roads){
-      const path=roadPath(network,road),width=roadWidth(road),start=trim(road,road.a),end=path.length-trim(road,road.b),steps=Math.max(2,Math.ceil((end-start)/3)),points=[];
+      const path=roadPath(network,road),width=roadWidth(road),pads=roadTurnarounds(network,road,connections,envelope);
+      const start=Math.max(trim(road,road.a),pads.find(p=>p.end==='a')?.trim||0),end=path.length-Math.max(trim(road,road.b),pads.find(p=>p.end==='b')?.trim||0),steps=Math.max(2,Math.ceil((end-start)/3)),points=[];
       for(let i=0;i<=steps;i++){const p=roadPointAt(network,road,start+(end-start)*i/steps);points.push({x:p.x,z:p.z});}
-      const surface=materials.road.clone();this.strip(points,width,surface,.445);
-      const heat=new THREE.MeshBasicMaterial({color:GREEN,transparent:true,opacity:0,depthWrite:false,toneMapped:false});this.strip(points,width,heat,.52);
-      for(const side of[-1,1]){const edge=[];for(let i=0;i<=steps;i++)edge.push(roadPointAt(network,road,start+(end-start)*i/steps,side*(width/2-.45)));this.pathLine(edge,selection===road.id?AMBER:0xbac6c7,.48);}
-      const counts=laneCounts(road);
-      if(hasLaneConfiguration(road)){
-        for(let i=1;i<counts.total;i++){const offset=-counts.total*1.8+i*3.6,line=[];for(let j=0;j<=steps;j++)line.push(roadPointAt(network,road,start+(end-start)*j/steps,offset));const divider=!road.oneWay&&i===counts.backward;this.pathLine(line,divider?0xd5bc76:0xe3e8e1,.49,!divider);}
-      }else if(!road.oneWay)this.pathLine(points,0xbac6c7,.48,true);
-      for(const forward of[true,false]){const count=forward?counts.forward:counts.backward;for(let lane=0;lane<count;lane++)for(let d=start+12;d<end-8;d+=50)this.laneArrow(network,road,d,laneOffset(road,forward,lane),forward,terminalIds(network,'sink').includes(forward?road.b:road.a)?['through']:effectiveLaneTurns(network,road,forward,lane));}
-      const middle=roadPointAt(network,road,path.length/2);const badge=document.createElement('div');badge.className='road-badge hidden';this.labelLayer.append(badge);this.roadVisuals.set(road.id,{surface,heat,badge,p:{x:middle.x,z:middle.z,y:1},level:null});
+      const surface=materials.road.clone();
+      for(const pad of pads){this.pavementMesh([pad.curbPolygon],materials.edge,.25);this.pavementMesh([pad.polygon],surface,.445);}
+      this.turnaroundGuidance(pads,selection===road.id?AMBER:0xbac6c7);
+      if(end-start>.05){
+        this.strip(points,width,surface,.445);
+        for(const side of[-1,1]){const edge=[];for(let i=0;i<=steps;i++)edge.push(roadPointAt(network,road,start+(end-start)*i/steps,side*(width/2-.45)));this.pathLine(edge,selection===road.id?AMBER:0xbac6c7,.48);}
+        const counts=laneCounts(road);
+        if(hasLaneConfiguration(road)){
+          for(let i=1;i<counts.total;i++){const offset=-counts.total*1.8+i*3.6,line=[];for(let j=0;j<=steps;j++)line.push(roadPointAt(network,road,start+(end-start)*j/steps,offset));const divider=!road.oneWay&&i===counts.backward;this.pathLine(line,divider?0xd5bc76:0xe3e8e1,.49,!divider);}
+        }else if(!road.oneWay)this.pathLine(points,0xbac6c7,.48,true);
+        for(const forward of[true,false]){const count=forward?counts.forward:counts.backward;for(let lane=0;lane<count;lane++)for(let d=start+12;d<end-8;d+=50)this.laneArrow(network,road,d,laneOffset(road,forward,lane),forward,terminalIds(network,'sink').includes(forward?road.b:road.a)?['through']:effectiveLaneTurns(network,road,forward,lane));}
+      }
+      const ports=new Set([...terminalIds(network,'source'),...terminalIds(network,'sink')]);
+      if(road.oneWay)for(const endNode of [road.a,road.b])if(!ports.has(endNode)&&network.roads.filter(r=>r.a===endNode||r.b===endNode).length===1){const s=endNode===road.a?0:path.length;this.pathLine([roadPointAt(network,road,s,-width/2+.45),roadPointAt(network,road,s,width/2-.45)],selection===road.id?AMBER:0xbac6c7,.50);}
+      const middle=roadPointAt(network,road,path.length/2);const badge=document.createElement('div');badge.className='road-badge hidden';this.labelLayer.append(badge);this.roadVisuals.set(road.id,{surface,badge,p:{x:middle.x,z:middle.z,y:1},level:null});
     }
     this.junctionGuidance(network,layout,connections);
     for(const node of network.nodes){
@@ -177,7 +193,7 @@ export class TrafficScene {
     let g=this.models.get('signal')?.clone(true);if(!g){g=new THREE.Group();const post=makeBox(.18,4.8,.18,materials.edge);post.position.y=2.4;g.add(post);const box=makeBox(.7,1.9,.5,materials.dark);box.position.y=4.7;g.add(box);for(const [i,color]of['red','amber','green'].entries()){const mesh=new THREE.Mesh(new THREE.SphereGeometry(.21,12,10),mat(0x333333));mesh.name=`lens_${color}`;mesh.position.set(0,5.25-i*.55,.28);g.add(mesh);}}
     g.traverse(n=>{if(n.isMesh){n.userData.asset=true;n.material=n.material.clone();}});return g;
   }
-  setModeVisibility(){this.roadGroup.visible=this.mode!=='garage';this.carGroup.visible=this.mode==='run';this.garageGroup.visible=this.mode==='garage';this.previewGroup.visible=this.mode==='edit';this.hoverGroup.visible=this.mode==='edit';this.grid.visible=this.mode!=='garage';this.labelLayer.style.display=this.mode==='garage'?'none':'';this.details.visible(this.mode);this.roadGroup.traverse(n=>{if(n.userData.editorMarker)n.visible=this.mode==='edit';});for(const v of this.roadVisuals.values())if(this.mode!=='run'){v.badge.classList.add('hidden');v.heat.opacity=0;v.surface.color.setHex(ROAD);v.level=null;}}
+  setModeVisibility(){this.roadGroup.visible=this.mode!=='garage';this.carGroup.visible=this.mode==='run';this.garageGroup.visible=this.mode==='garage';this.previewGroup.visible=this.mode==='edit';this.hoverGroup.visible=this.mode==='edit';this.grid.visible=this.mode!=='garage';this.labelLayer.style.display=this.mode==='garage'?'none':'';this.details.visible(this.mode);this.roadGroup.traverse(n=>{if(n.userData.editorMarker)n.visible=this.mode==='edit';});for(const v of this.roadVisuals.values())if(this.mode!=='run'){v.badge.classList.add('hidden');v.surface.color.setHex(ROAD);v.level=null;}}
   setMode(mode){this.mode=mode;this.currentCamera=mode==='edit'&&!this.editPerspective?this.editCamera:this.camera;this.controls&&(this.controls.enabled=(mode!=='edit'||this.editPerspective)&&!this.fallback);this.setNavigationTool(this.navigationTool);this.setModeVisibility();if(mode==='run')this.fit();if(mode==='edit'){this.clearCars();this.details.reset();this.fit();}}
   async transitionToRun(){this.mode='transition';this.currentCamera=this.camera;this.setModeVisibility();this.fit();const end=this.camera.position.clone(),start=new THREE.Vector3(this.center.x,Math.max(160,end.y*1.3),this.center.z+.05);const duration=matchMedia('(prefers-reduced-motion: reduce)').matches?0:750;const t0=performance.now();await new Promise(resolve=>{const step=t=>{const ratio=duration?Math.min(1,(t-t0)/duration):1;const eased=ratio*ratio*(3-2*ratio);this.camera.position.lerpVectors(start,end,eased);this.camera.lookAt(this.center);if(ratio<1)requestAnimationFrame(step);else resolve();};requestAnimationFrame(step);});this.setMode('run');}
   clearCars(){for(const model of this.vehicles.values())this.carGroup.remove(model);this.vehicles.clear();}
@@ -190,9 +206,9 @@ export class TrafficScene {
     this.updateTraffic(snapshot.roadStats||{});this.details.update(snapshot,this.center);
   }
   updateTraffic(roads){
-    const colors={empty:0x576a70,free:0x64e4a7,slow:0xffbd4c,congested:0xff6556};const surfaces={empty:ROAD,free:0x203c34,slow:0x5c4925,congested:0x652b27};
+    const surfaces={empty:ROAD,free:0x203c34,slow:0x5c4925,congested:0x652b27};
     const crowded=Object.values(roads).filter(r=>r.level==='congested'||r.level==='slow').sort((a,b)=>b.queuedVehicles-a.queuedVehicles||a.speedRatio-b.speedRatio).slice(0,this.width<600?2:4);const visible=new Set(crowded.map(r=>r.roadId));
-    for(const[id,v]of this.roadVisuals){const r=roads[id],level=r?.level||'empty';if(v.level!==level||v.heatmap!==this.showHeatmap){v.level=level;v.heatmap=this.showHeatmap;v.surface.color.setHex(this.showHeatmap===false?ROAD:surfaces[level]);v.heat.color.setHex(colors[level]);v.heat.opacity=this.showHeatmap===false||level==='empty'?0:level==='congested'?.16:.08;}
+    for(const[id,v]of this.roadVisuals){const r=roads[id],level=r?.level||'empty';if(v.level!==level||v.heatmap!==this.showHeatmap){v.level=level;v.heatmap=this.showHeatmap;v.surface.color.setHex(this.showHeatmap===false?ROAD:surfaces[level]);}
       v.badge.classList.toggle('hidden',!visible.has(id)||this.mode!=='run');v.badge.dataset.level=level;if(r)v.badge.textContent=`${r.label} · ${r.queuedVehicles?`排队 ${r.queuedVehicles} 辆`:r.meanSpeedKmh==null?'无车':`${r.meanSpeedKmh.toFixed(0)} km/h`}`;
     }
   }
