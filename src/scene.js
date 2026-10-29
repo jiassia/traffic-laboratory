@@ -89,7 +89,13 @@ export class TrafficScene {
   pathLine(points,color,y=.48,dashed=false,group=this.roadGroup){const geometry=new THREE.BufferGeometry().setFromPoints(points.map(p=>new THREE.Vector3(p.x,y,p.z)));const material=dashed?new THREE.LineDashedMaterial({color,dashSize:2.8,gapSize:4.2}):new THREE.LineBasicMaterial({color});const line=new THREE.Line(geometry,material);if(dashed)line.computeLineDistances();group.add(line);return line;}
   pavementMesh(polygons,material,y){
     const vertices=[],indices=[];
-    for(const points of polygons){if(points.length<3)continue;const start=vertices.length/3;for(const p of points)vertices.push(p.x,y,p.z);for(let i=1;i<points.length-1;i++)indices.push(start,start+i+1,start+i);}
+    for(const points of polygons){
+      if(points.length<3)continue;const start=vertices.length/3;for(const p of points)vertices.push(p.x,y,p.z);
+      const area=(a,b,c)=>(b.x-a.x)*(c.z-a.z)-(b.z-a.z)*(c.x-a.x);
+      const convex=points.every((p,i)=>area(p,points[(i+1)%points.length],points[(i+2)%points.length])>=-1e-8);
+      const triangles=convex?Array.from({length:points.length-2},(_,i)=>[0,i+1,i+2]):THREE.ShapeUtils.triangulateShape(points.map(p=>new THREE.Vector2(p.x,p.z)),[]);
+      for(const [a,b,c] of triangles){const winding=area(points[a],points[b],points[c]);if(Math.abs(winding)<1e-10)continue;indices.push(start+a,start+(winding>0?c:b),start+(winding>0?b:c));}
+    }
     if(!vertices.length)return;
     const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));geometry.setIndex(indices);geometry.computeVertexNormals();
     const mesh=new THREE.Mesh(geometry,material);mesh.receiveShadow=true;this.roadGroup.add(mesh);return mesh;
