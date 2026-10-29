@@ -35,7 +35,7 @@ export class SandboxPanels{
       if(target.dataset.removeFacility){this.closePanel();this.commit(removeFacility(s.network,target.dataset.removeFacility));return;}
       if(target.dataset.inspectNode){this.openSignal(target.dataset.inspectNode);return;}
       const action=target.dataset.action;
-      if(action==='facilities')this.facilities();else if(action==='rules')this.rules();else if(action==='environment')this.environment();else if(action==='incidents')this.incidents();
+      if(action==='facilities'){if(s.panel==='道路设施'){this.closePanel();return;}this.facilities();}else if(action==='rules'){if(s.panel==='交通规则'){this.closePanel();return;}this.rules();}else if(action==='environment'){if(s.panel==='天气与照明'){this.closePanel();return;}this.environment();}else if(action==='incidents'){if(s.panel==='事故与应急'){this.closePanel();return;}this.incidents();}
       else if(action==='auto-facilities'){const network=autoPlaceFacilities(s.network,{streetlights:$('#auto-streetlights').checked,trafficLights:$('#auto-traffic-lights').checked,spacing:Number($('#lamp-spacing').value)});this.closePanel();this.commit(network);this.toast(`设施已更新，共 ${network.facilities.length} 个`);}
       else if(action==='all-obey')this.updateSettings({compliance:100,violation:0});
       else if(action==='all-disobey')this.updateSettings({compliance:0,violation:100});

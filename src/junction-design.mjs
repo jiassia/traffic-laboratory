@@ -113,12 +113,21 @@ export function pavementFootprints(network,connections=EMPTY_CONNECTIONS,{vehicl
   const add=points=>{const polygon=localHull(points);if(polygon.length<3||containedInOneRoad(polygon,roadPolygons,roadIndex))return;const key=polygonKey(polygon);if(seen.has(key))return;seen.add(key);polygons.push(polygon);};
   for(const connection of connections){
     const poses=connection.points||connection.poses||[];
-    let previous=null;
-    for(const pose of poses){
-      if(!finite(pose.x)||!finite(pose.z)||!finite(pose.yaw))throw new Error('连接器车身姿态必须为有限数值');
-      const current=vehicleFootprint(pose,vehicleLength,vehicleWidth,margin+curbMargin);if(previous)add([...previous,...current]);previous=current;
+    if(!poses.length)continue;
+    const laneW=connection.laneWidth||vehicleWidth;
+    const halfWidth=laneW/2+margin+curbMargin;
+    for(let i=1;i<poses.length;i++){
+      const p0=poses[i-1],p1=poses[i];
+      if(!finite(p0.x)||!finite(p0.z)||!finite(p0.yaw)||!finite(p1.x)||!finite(p1.z)||!finite(p1.yaw))throw new Error('连接器车身姿态必须为有限数值');
+      const n0={x:Math.cos(p0.yaw),z:-Math.sin(p0.yaw)};
+      const n1={x:Math.cos(p1.yaw),z:-Math.sin(p1.yaw)};
+      add([
+        {x:p0.x-n0.x*halfWidth,z:p0.z-n0.z*halfWidth},
+        {x:p0.x+n0.x*halfWidth,z:p0.z+n0.z*halfWidth},
+        {x:p1.x+n1.x*halfWidth,z:p1.z+n1.z*halfWidth},
+        {x:p1.x-n1.x*halfWidth,z:p1.z-n1.z*halfWidth}
+      ]);
     }
-    if(poses.length===1)add(previous);
   }
   cached.variants.set(key,polygons);return polygons;
 }

@@ -340,7 +340,7 @@ select:focus-visible {
   gap: 12px;
   max-width: calc(100% - 32px);
   padding-top: 42px;
-  align-items: flex-end;
+  align-items: center;
 }
 
 /* 连接与操作状态指示条 */
@@ -477,15 +477,17 @@ select:focus-visible {
 
 /* 中层工具栏 (选择、入口、道路、出口、拆除) */
 .construction-dock .toolbar {
-  display: flex !important;
-  flex-direction: row !important;
-  align-items: center !important;
-  justify-content: space-between !important;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
   padding: 8px 10px;
   gap: 6px;
   background: transparent;
   border: 0;
   box-shadow: none;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .construction-dock .tool {
@@ -505,6 +507,8 @@ select:focus-visible {
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  transition: all 0.16s ease;
+  cursor: pointer;
 }
 
 .construction-dock .tool .icon {
@@ -524,24 +528,40 @@ select:focus-visible {
   border-color: var(--primary-border) !important;
 }
 
-/* 设施工具栏 */
+/* 设施工具栏 (5项严整等宽对齐，与道路工具完全对齐) */
 .facility-toolbar {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
   padding: 8px 10px;
   gap: 6px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .facility-toolbar button {
-  min-height: 52px;
-  padding: 6px;
+  flex: 1 1 0;
+  min-width: 0;
+  height: 50px;
+  padding: 4px 6px;
   font-size: 13px;
+  font-weight: 500;
+  gap: 3px;
   border-radius: 9px;
-  border: 1px solid var(--line);
-  background: #ffffff;
-  box-shadow: var(--shadow-xs);
+  border: 1px solid transparent;
+  background: transparent;
+  box-shadow: none;
   color: var(--text-secondary);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.16s ease;
 }
 
-.facility-toolbar button:hover {
+.facility-toolbar button:hover:not(.active) {
   background: var(--card-hover);
   color: var(--text);
 }
@@ -550,6 +570,7 @@ select:focus-visible {
   background: var(--primary-soft) !important;
   color: var(--primary) !important;
   border-color: var(--primary-border) !important;
+  font-weight: 600 !important;
 }
 
 .facility-toolbar .icon {
@@ -559,17 +580,19 @@ select:focus-visible {
 
 /* 道路线形选择条 (直线、曲线、自由、圆形) */
 .road-modes {
-  display: flex !important;
-  flex-direction: row !important;
-  align-items: center !important;
-  justify-content: space-between !important;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
   padding: 0 10px 8px;
   gap: 6px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .road-modes button {
-  flex: 1 1 0 !important;
-  min-width: 0 !important;
+  flex: 1 1 0;
+  min-width: 0;
   min-height: 32px;
   padding: 4px 6px;
   font-size: 12px;
@@ -579,10 +602,12 @@ select:focus-visible {
   background: #f8fafc;
   color: var(--muted);
   box-shadow: none;
-  display: inline-flex !important;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 4px;
+  cursor: pointer;
+  transition: all 0.16s ease;
 }
 
 .road-modes button:hover:not(.active) {
@@ -2477,4 +2502,15 @@ select:focus-visible {
   background: var(--primary-soft) !important;
   color: var(--primary) !important;
   border-color: var(--primary-border) !important;
+}
+
+/* 严密保证工具坞各子工具在 hidden 时的绝对隐藏 */
+.hidden,
+[hidden],
+.construction-dock .hidden,
+.construction-dock .toolbar.hidden,
+.facility-toolbar.hidden,
+.road-modes.hidden,
+.snap-strip.hidden {
+  display: none !important;
 }
