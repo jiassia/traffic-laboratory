@@ -102,20 +102,15 @@ export class TrafficScene {
     const mesh=new THREE.Mesh(geometry,material);mesh.receiveShadow=true;this.roadGroup.add(mesh);return mesh;
   }
   junctionGuidance(network,layout,connections){
-    const offset=(points,width)=>points.map(p=>({x:p.x-Math.cos(p.yaw)*width,z:p.z+Math.sin(p.yaw)*width}));
-    const marked=new Set();
-    const paint=(connection,main)=>{
-      for(const side of[-1,1]){const points=offset(connection.points,side*connection.laneWidth/2),key=points.map((p,i)=>i%12===0?`${p.x.toFixed(2)},${p.z.toFixed(2)}`:'').join(';');if(marked.has(key))continue;marked.add(key);
-        const line=this.pathLine(points,main?0xd5dfd4:0xb9cbbb,.50,true);line.material.dashSize=main?2.2:1.4;line.material.gapSize=main?3.8:3.2;line.material.transparent=true;line.material.opacity=main?.78:.58;line.material.depthWrite=false;
-      }
-    };
+    // 严格规范路口标线：消除满地碎渣短虚线，仅在信号路口为主要左转车道绘制单根平滑中心导向线
     for(const junction of layout.nodes){
-      const paths=connections.filter(c=>c.nodeId===junction.nodeId&&!c.uTurn),main=dominantThroughPair(network,junction),branches=new Map();
-      for(const c of paths){
-        if(main?.roadIds.includes(c.inRoadId)&&main.roadIds.includes(c.outRoadId)){if(c.preferred)paint(c,true);continue;}
-        const key=`${c.inRoadId}:${c.outRoadId}`,old=branches.get(key);if(!old||c.length<old.length)branches.set(key,c);
+      if(!network.signals?.[junction.nodeId]?.enabled)continue;
+      const leftTurns=connections.filter(c=>c.nodeId===junction.nodeId&&c.turn==='left'&&!c.uTurn&&c.preferred);
+      for(const c of leftTurns){
+        if(!c.points?.length)continue;
+        const line=this.pathLine(c.points,0xd0dad0,.50,true);
+        line.material.dashSize=2.0;line.material.gapSize=2.5;line.material.transparent=true;line.material.opacity=0.65;line.material.depthWrite=false;
       }
-      for(const c of branches.values())paint(c,false);
     }
   }
   turnaroundGuidance(pads,color){
@@ -140,7 +135,40 @@ export class TrafficScene {
       this.roadGroup.add(new THREE.LineSegments(geometry,batch.material));
     }
   }
-  laneArrow(network,road,d,offset,forward,turns){const sign=forward?1:-1,at=(s,o=offset)=>roadPointAt(network,road,s,o),tail=at(d-sign*3),center=at(d);for(const turn of turns){if(turn==='through'){const tip=at(d+sign*1.7);this.pathLine([tail,tip],0xdbe4db,.55);this.pathLine([at(d-sign,offset-.9),tip,at(d-sign,offset+.9)],0xdbe4db,.55);}else{const bend=(turn==='left'?-1:1)*sign,tipOffset=offset+bend*2,tip=at(d,tipOffset);this.pathLine([tail,center,tip],0xdbe4db,.55);this.pathLine([at(d-sign*.8,tipOffset-bend*.8),tip,at(d+sign*.8,tipOffset-bend*.8)],0xdbe4db,.55);}}}
+  laneArrow(network,road,d,offset,forward,turns){
+    const sign=forward?1:-1;
+    const at=(s,o=offset)=>roadPointAt(network,road,s,o);
+    const hasThrough=turns.includes('through');
+    const hasLeft=turns.includes('left');
+    const hasRight=turns.includes('right');
+    const lineColor=0xe2e8f0;
+
+    // 1. 直行主干与标准人字箭头 (长度适中，翼宽严格收在车道内)
+    if(hasThrough||(!hasLeft&&!hasRight)){
+      const tail=at(d-sign*2.2);
+      const tip=at(d+sign*2.0);
+      this.pathLine([tail,tip],lineColor,.55);
+      this.pathLine([at(d+sign*1.0,offset-.55),tip,at(d+sign*1.0,offset+.55)],lineColor,.55);
+    }
+
+    // 2. 左转优雅分叉臂与小巧尖端 (外伸量严格限制在 1.0 米内，绝不越线到隔壁车道)
+    if(hasLeft){
+      const branchStart=hasThrough?at(d-sign*0.5):at(d-sign*1.8);
+      const elbow=at(d+sign*0.8,offset-0.45);
+      const tip=at(d+sign*0.8,offset-1.0);
+      this.pathLine([branchStart,elbow,tip],lineColor,.55);
+      this.pathLine([at(d+sign*1.2,offset-0.65),tip,at(d+sign*0.4,offset-0.65)],lineColor,.55);
+    }
+
+    // 3. 右转优雅分叉臂与小巧尖端 (严格控制在车道内部，与直行平滑组合)
+    if(hasRight){
+      const branchStart=hasThrough?at(d-sign*0.5):at(d-sign*1.8);
+      const elbow=at(d+sign*0.8,offset+0.45);
+      const tip=at(d+sign*0.8,offset+1.0);
+      this.pathLine([branchStart,elbow,tip],lineColor,.55);
+      this.pathLine([at(d+sign*1.2,offset+0.65),tip,at(d+sign*0.4,offset+0.65)],lineColor,.55);
+    }
+  }
   setNetwork(network,selection=null){
     this.network=network;this.selection=selection;this.clear(this.roadGroup);this.phaseHeads=[];this.labelLayer.innerHTML='';this.labels=[];this.roadVisuals.clear();
     const layout=junctionLayout(network),connections=junctionConnections(network);this.junctionGeometry=layout;
@@ -162,7 +190,19 @@ export class TrafficScene {
         if(hasLaneConfiguration(road)){
           for(let i=1;i<counts.total;i++){const offset=-counts.total*1.8+i*3.6,line=[];for(let j=0;j<=steps;j++)line.push(roadPointAt(network,road,start+(end-start)*j/steps,offset));const divider=!road.oneWay&&i===counts.backward;this.pathLine(line,divider?0xd5bc76:0xe3e8e1,.49,!divider);}
         }else if(!road.oneWay)this.pathLine(points,0xbac6c7,.48,true);
-        for(const forward of[true,false]){const count=forward?counts.forward:counts.backward;for(let lane=0;lane<count;lane++)for(let d=start+12;d<end-8;d+=50)this.laneArrow(network,road,d,laneOffset(road,forward,lane),forward,terminalIds(network,'sink').includes(forward?road.b:road.a)?['through']:effectiveLaneTurns(network,road,forward,lane));}
+        const roadSpan=end-start;
+        if(roadSpan>=16){
+          for(const forward of [true,false]){
+            const count=forward?counts.forward:counts.backward;
+            if(!count)continue;
+            // 真实道路规范：导向箭头位于驶入交叉路口前段；正向驶往 end，反向驶往 start，各在路端，绝不对撞
+            const arrowD=forward?Math.max(start+5,end-8):Math.min(end-5,start+8);
+            for(let lane=0;lane<count;lane++){
+              const turns=terminalIds(network,'sink').includes(forward?road.b:road.a)?['through']:effectiveLaneTurns(network,road,forward,lane);
+              this.laneArrow(network,road,arrowD,laneOffset(road,forward,lane),forward,turns);
+            }
+          }
+        }
       }
       const ports=new Set([...terminalIds(network,'source'),...terminalIds(network,'sink')]);
       if(road.oneWay)for(const endNode of [road.a,road.b])if(!ports.has(endNode)&&network.roads.filter(r=>r.a===endNode||r.b===endNode).length===1){const s=endNode===road.a?0:path.length;this.pathLine([roadPointAt(network,road,s,-width/2+.45),roadPointAt(network,road,s,width/2-.45)],selection===road.id?AMBER:0xbac6c7,.50);}

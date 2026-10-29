@@ -16,7 +16,23 @@ export class WorldDetails{
     this.network=network;clear(this.facilities);this.lampMaterials=[];this.lights=[];
     for(const f of network.facilities||[]){
       if(f.type==='trafficLight')continue;
-      const group=new THREE.Group();group.position.set(f.x,.46,f.z);group.rotation.y=f.heading||0;group.userData.facilityId=f.id;
+      // 确保路灯朝向道路：以灯基座指向道路中心线的向量为准
+      let heading=f.heading||0;
+      if(f.type==='streetlight'){
+        if(f.roadId&&network?.roads){
+          const road=network.roads.find(r=>r.id===f.roadId);
+          if(road){
+            const center=roadPointAt(network,road,f.s||0);
+            const toRoadX=center.x-f.x,toRoadZ=center.z-f.z;
+            if(Math.hypot(toRoadX,toRoadZ)>0.01){
+              heading=Math.atan2(-toRoadZ,toRoadX);
+            }
+          }
+        }else if(f.side===-1){
+          heading=(f.heading||0)+Math.PI;
+        }
+      }
+      const group=new THREE.Group();group.position.set(f.x,.46,f.z);group.rotation.y=heading;group.userData.facilityId=f.id;
       if(f.type==='streetlight'){
         const source=this.models.get('lamp');if(source){const model=source.clone(true);model.traverse(n=>{if(n.isMesh){n.userData.asset=true;if(/emitter|lamp_off/i.test(n.name+' '+n.material?.name)){n.material=n.material.clone();n.material.emissive=new THREE.Color(0xffdc9c);this.lampMaterials.push(n.material);}}});group.add(model);}else{const m=material(0x74818a),post=box(.18,6,.18,m);post.position.y=3;group.add(post);const arm=box(2.1,.16,.16,m);arm.position.set(.85,5.9,0);group.add(arm);const bulb=box(.8,.15,.4,material(0xf2dfb6,{emissive:0xffdd99,emissiveIntensity:1}));bulb.position.set(1.4,5.8,0);group.add(bulb);this.lampMaterials.push(bulb.material);}
         if(this.lights.length<10){const light=new THREE.PointLight(0xffd899,0,20,2);light.position.set(0,5.5,0);group.add(light);this.lights.push(light);}

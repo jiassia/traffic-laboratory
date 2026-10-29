@@ -316,13 +316,14 @@ button:disabled {
 .panel {
   position: absolute;
   z-index: 20;
-  top: 64px;
-  right: 0;
-  bottom: 0;
-  height: calc(100vh - 64px);
-  max-height: calc(100vh - 64px);
+  top: 76px;
+  right: 20px;
+  bottom: 24px;
+  height: auto;
+  max-height: calc(100vh - 100px);
   display: flex;
   flex-direction: column;
+  border-radius: 20px;
   transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease;
 }
 
