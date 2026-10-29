@@ -1,5 +1,5 @@
 // Deterministic, metre-second teaching traffic model. Rendering never advances this state.
-import {roadPath,pathPointAt,makePath,projectOnPath} from './geometry.mjs';
+import {roadPath,pathPointAt,makePath,projectOnPath,samplePath} from './geometry.mjs';
 import {roadEndTrim,junctionIssues} from './junction-layout.mjs';
 import {createTrafficEngine} from './trafficEngine.mjs';
 import {normalizeTerminalRoads,terminalIds,isSource,isSink} from './terminals.mjs';
@@ -128,7 +128,7 @@ export function signalPhase(signal,time,mode='normal') {
 function makeLane(network,road,from,index=0) {
   const to=road.a===from?road.b:road.a, a=network.nodes.find(n=>n.id===from),b=network.nodes.find(n=>n.id===to);
   const centerPath=roadPath(network,road),forward=road.a===from,signedOffset=laneOffset(road,forward,index),offset=Math.abs(signedOffset);
-  const path=makePath(centerPath.distances.map(s=>pathPointAt(centerPath,s,signedOffset))),length=path.length;
+  const path=makePath(samplePath(centerPath,0,centerPath.length,3,signedOffset)),length=path.length;
   const start=pathPointAt(path,forward?0:length),yaw=start.yaw+(forward?0:Math.PI),dx=Math.sin(yaw),dz=Math.cos(yaw);
   const centerTrim=nodeId=>{const deadEnd=network.roads.filter(r=>r.a===nodeId||r.b===nodeId).length===1&&!road.oneWay&&!isSource(network,nodeId)&&!isSink(network,nodeId);return deadEnd?Math.min(JUNCTION_TRIM,centerPath.length*.25):roadEndTrim(network,road,nodeId);};
   const atFrom=centerTrim(from),atTo=centerTrim(to),cutStart=pathPointAt(centerPath,forward?atFrom:centerPath.length-atFrom,signedOffset),cutEnd=pathPointAt(centerPath,forward?centerPath.length-atTo:atTo,signedOffset);

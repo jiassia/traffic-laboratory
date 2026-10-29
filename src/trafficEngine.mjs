@@ -2,6 +2,7 @@ import {pathPointAt,roadPath} from './geometry.mjs';
 import {laneCounts,laneKey,roadWidth,classifyTurn,effectiveLaneTurns,laneAllowsMovement} from './lanes.mjs';
 import {bodyOverlap,sweptBodyOverlap,collisionPairs} from './incidents.mjs';
 import {terminalIds} from './terminals.mjs';
+import {SIGNAL_STOP_SETBACK} from './road-facilities.mjs';
 
 const clamp=(value,min,max)=>Math.max(min,Math.min(max,value));
 const finite=(value,min,max)=>typeof value==='number'&&Number.isFinite(value)&&value>=min&&value<=max;
@@ -220,7 +221,7 @@ export function createTrafficEngine(inputNetwork,inputSettings,ctx){
       const occupant=car.turn?null:laneOccupants(car.lane.key,car).find(item=>item.s>car.s);
       if(occupant){gap=occupant.s-car.s-(occupant.length+car.type.length)/2;leaderSpeed=occupant.speed;}
       if(!car.turn&&(!sinkSet.has(car.lane.to)||network.signals[car.lane.to]?.enabled)){
-        if(!permitted(car)){const counts=laneCounts(car.lane.road),setback=(car.lane.forward?counts.forward:counts.backward)>1?6.5:0,stopGap=car.lane.length-car.lane.trim-setback-car.s-car.type.length/2;if(stopGap<gap){gap=stopGap;leaderSpeed=0;}}
+        if(!permitted(car)){const counts=laneCounts(car.lane.road),setback=(car.lane.forward?counts.forward:counts.backward)>1?SIGNAL_STOP_SETBACK:0,stopGap=car.lane.length-car.lane.trim-setback-car.s-car.type.length/2;if(stopGap<gap){gap=stopGap;leaderSpeed=0;}}
         const distance=Math.max(0,car.lane.length-car.lane.trim-car.s);target=Math.min(target,Math.sqrt((car.compliant?3.5:7)**2+2*car.type.brake*conditions.friction*distance));
       }
       if(car.compliant&&!car.turn){

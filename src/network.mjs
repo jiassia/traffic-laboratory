@@ -3,6 +3,7 @@ import { makePath,roadPath,roadPointAt,projectOnRoad,projectOnPath,pathLength,sl
 import { normalizeTerminalRoads,terminalIds } from './terminals.mjs';
 import {hasLaneConfiguration,laneCounts,roadWidth,copyLaneTurns} from './lanes.mjs';
 import {roadEndTrim} from './junction-layout.mjs';
+import {trafficApproach,streetlightLayout} from './road-facilities.mjs';
 
 const EPS=1e-6,MIN_LENGTH=25,MIN_SPLIT=12,SNAP_DISTANCE=2;
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
@@ -106,8 +107,7 @@ export function removeRoadSegment(input,{roadId,s,length=32}={}){
     if(f.type==='trafficLight'){
       const part=parts.find(p=>p.road.a===f.nodeId||p.road.b===f.nodeId);if(!part)return null;
       const approach=trafficApproach(network,part.road,{id:f.nodeId});if(!approach.legal)return null;
-      const position=roadPointAt(network,part.road,approach.s,(roadWidth(part.road)/2+1.4)*f.side);
-      return {...f,roadId:part.road.id,s:approach.s,x:position.x,z:position.z,heading:approach.heading};
+      return {...f,roadId:part.road.id,s:approach.s,x:approach.pole.x,z:approach.pole.z,heading:approach.heading,side:approach.sign};
     }
     const part=parts.find(p=>f.s>=p.startS-EPS&&f.s<=p.endS+EPS);if(!part)return null;const station=Math.max(0,Math.min(part.length,f.s-part.startS));
     return {...f,roadId:part.road.id,s:station,heading:roadPointAt(network,part.road,station).yaw};
@@ -117,18 +117,20 @@ export function removeRoadSegment(input,{roadId,s,length=32}={}){
   return copyNetwork(network);
 }
 
-function trafficApproach(network,road,node){
-  const path=roadPath(network,road),forward=road.b===node.id,sign=forward?1:-1,trim=roadEndTrim(network,road,node.id),s=forward?path.length-trim:trim,center=roadPointAt(network,road,s);
-  return {road,path,s,center,sign,legal:forward||!road.oneWay,heading:Math.atan2(Math.sin(center.yaw+(forward?0:Math.PI)),Math.cos(center.yaw+(forward?0:Math.PI)))};
-}
 export function realignTrafficLights(input){
   const network=copyNetwork(input),roads=new Map(network.roads.map(road=>[road.id,road]));
-  network.facilities=network.facilities.map(f=>{
-    if(f.type!=='trafficLight')return f;
+  const seen=new Set();
+  network.facilities=network.facilities.flatMap(f=>{
+    if(f.type==='streetlight'){
+      const layout=streetlightLayout(network,f);
+      return [{...f,...layout.position,s:layout.s??f.s,heading:layout.heading}];
+    }
+    if(f.type!=='trafficLight')return [f];
     const road=roads.get(f.roadId);
     if(!road||!f.nodeId||(road.a!==f.nodeId&&road.b!==f.nodeId))throw new Error('信号灯绑定的道路来向无效，无法重新定位');
-    const approach=trafficApproach(network,road,{id:f.nodeId}),position=roadPointAt(network,road,approach.s,(roadWidth(road)/2+1.4)*f.side);
-    return {...f,s:approach.s,x:position.x,z:position.z,heading:approach.heading};
+    const approach=trafficApproach(network,road,f.nodeId),key=`${f.nodeId}:${road.id}`;
+    if(!approach.legal||seen.has(key))return [];seen.add(key);
+    return [{...f,s:approach.s,x:approach.pole.x,z:approach.pole.z,heading:approach.heading,side:approach.sign}];
   });
   return network;
 }
@@ -142,18 +144,25 @@ export function placeFacility(input,{type,point,side,roadId,nodeId}={}){
     const eligible=network.nodes.filter(n=>network.roads.filter(r=>r.a===n.id||r.b===n.id).length>=2).sort((a,b)=>distance(a,p)-distance(b,p)),node=nodeId?eligible.find(n=>n.id===nodeId):eligible[0];if(!node||distance(node,p)>45)throw new Error('请在道路交汇节点附近放置信号灯');
     const choices=network.roads.filter(r=>(r.a===node.id||r.b===node.id)&&(!roadId||r.id===roadId)).map(road=>trafficApproach(network,road,node)).sort((a,b)=>approachDistance(network,a,node,p)-approachDistance(network,b,node,p));
     const approach=choices[0];if(!approach)throw new Error('未找到信号灯绑定的道路来向');if(!approach.legal)throw new Error('所选道路为驶出方向，请在驶入路口的方向安装信号灯');
-    const {road,s,center,sign,heading}=approach,dot=(p.x-center.x)*(-center.tangentZ)+(p.z-center.z)*center.tangentX,direction=side===-1?-1:side===1?1:Math.abs(dot)>.75?(dot<0?-1:1):sign;
-    if(network.facilities.some(f=>f.type===type&&f.nodeId===node.id&&f.roadId===road.id&&f.side===direction))return network;
-    const position=roadPointAt(network,road,s,(roadWidth(road)/2+1.4)*direction);facility={id:nextId(),type,x:position.x,z:position.z,roadId:road.id,nodeId:node.id,s,heading,side:direction};network.signals[node.id]={...DEFAULT_SIGNAL,...network.signals[node.id],enabled:true};
+    const {road,s,sign,heading}=approach;
+    if(network.facilities.some(f=>f.type===type&&f.nodeId===node.id&&f.roadId===road.id))return network;
+    facility={id:nextId(),type,x:approach.pole.x,z:approach.pole.z,roadId:road.id,nodeId:node.id,s,heading,side:sign};network.signals[node.id]={...DEFAULT_SIGNAL,...network.signals[node.id],enabled:true};
   }else{
     let nearest=null;for(const road of network.roads){if(roadId&&road.id!==roadId)continue;const q=projectOnRoad(network,road,p);if(!nearest||q.distance<nearest.q.distance)nearest={road,q};}if(!nearest||nearest.q.distance>35)throw new Error('请在道路附近放置设施');const {road,q}=nearest,length=roadPath(network,road).length,margin=2,s=Math.max(margin,Math.min(length-margin,q.s)),center=roadPointAt(network,road,s),dot=(p.x-center.x)*(-center.tangentZ)+(p.z-center.z)*center.tangentX,direction=side===-1?-1:side===1?1:dot<0?-1:1,offset=(roadWidth(road)/2+1.6)*direction,pos=roadPointAt(network,road,s,offset);
-    if(network.facilities.some(f=>f.type===type&&f.roadId===road.id&&f.side===direction&&Math.abs(f.s-s)<4))return network;const toRoadX=center.x-pos.x,toRoadZ=center.z-pos.z,streetHeading=Math.hypot(toRoadX,toRoadZ)>0.01?Math.atan2(-toRoadZ,toRoadX):pos.yaw;facility={id:nextId(),type,x:pos.x,z:pos.z,roadId:road.id,nodeId:null,s,heading:type==='streetlight'?streetHeading:pos.yaw,side:direction};
+    if(network.facilities.some(f=>f.type===type&&f.roadId===road.id&&f.side===direction&&Math.abs(f.s-s)<4))return network;facility={id:nextId(),type,x:pos.x,z:pos.z,roadId:road.id,nodeId:null,s,heading:pos.yaw,side:direction};
+    if(type==='streetlight'){const lamp=streetlightLayout(network,facility);facility={...facility,...lamp.position,s:lamp.s,heading:lamp.heading};}
   }network.facilities.push(facility);return copyNetwork(network);
 }
 export function removeFacility(input,id){const network=copyNetwork(input),facility=(network.facilities||[]).find(f=>f.id===id);network.facilities=(network.facilities||[]).filter(f=>f.id!==id);if(facility?.type==='trafficLight'&&!network.facilities.some(f=>f.type==='trafficLight'&&f.nodeId===facility.nodeId))delete network.signals[facility.nodeId];return network;}
 export function autoPlaceFacilities(input,{streetlights=true,trafficLights=false,spacing=30}={}){
   if(!Number.isFinite(spacing)||spacing<15||spacing>100)throw new Error('自动布置间距应为 15 至 100 米');let network=copyNetwork(input);const sourceRoads=[...network.roads];
-  if(streetlights)for(const road of sourceRoads){const length=roadPath(network,road).length;for(let s=Math.min(12,length/2);s<length-5;s+=spacing)for(const side of[-1,1])network=placeFacility(network,{type:'streetlight',point:roadPointAt(network,road,s,roadWidth(road)/2*side),side,roadId:road.id});}
+  if(streetlights)for(const road of sourceRoads){
+    const length=roadPath(network,road).length,start=roadEndTrim(network,road,road.a)+6,end=length-roadEndTrim(network,road,road.b)-6;
+    if(end<start)continue;
+    const intervals=Math.max(1,Math.ceil((end-start)/spacing)),inset=(end-start)<12?(end-start)/2:Math.min(6,(end-start)/4);
+    const from=start+inset,to=end-inset;
+    for(let i=0;i<=intervals;i++)for(const side of[-1,1])network=placeFacility(network,{type:'streetlight',point:roadPointAt(network,road,from+(to-from)*i/intervals,roadWidth(road)/2*side),side,roadId:road.id});
+  }
   if(trafficLights)for(const node of [...network.nodes])if(network.roads.filter(r=>r.a===node.id||r.b===node.id).length>=3)for(const road of network.roads.filter(r=>r.a===node.id||r.b===node.id)){
     const approach=trafficApproach(network,road,node);if(!approach.legal)continue;network=placeFacility(network,{type:'trafficLight',point:approach.center,roadId:road.id,nodeId:node.id,side:approach.sign});
   }

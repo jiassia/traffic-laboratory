@@ -47,6 +47,19 @@ export function pathPointAt(path,s,offset=0){
   return {x:seg.a.x+(seg.b.x-seg.a.x)*t-dz*offset,z:seg.a.z+(seg.b.z-seg.a.z)*t+dx*offset,yaw:Math.atan2(dx,dz),curvature:angle/seg.length,tangentX:dx,tangentZ:dz};
 }
 export function roadPointAt(network,road,s,offset=0){return pathPointAt(roadPath(network,road),s,offset);}
+// Preserve every source vertex so pavement, paint and lane motion share the
+// same bends, even when a short segment falls between regular metre samples.
+export function samplePath(path,start=0,end=path.length,maxStep=3,offset=0){
+  if(!Number.isFinite(maxStep)||maxStep<=0)throw new Error('道路采样间距必须大于零');
+  const a=clamp(start,0,path.length),b=clamp(end,0,path.length);
+  if(b<a)return [];
+  const cuts=[a,...path.distances.filter(s=>s>a+EPS&&s<b-EPS),b],samples=[];
+  for(let i=1;i<cuts.length;i++){
+    const count=Math.max(1,Math.ceil((cuts[i]-cuts[i-1])/maxStep));
+    for(let j=0;j<count;j++){const s=cuts[i-1]+(cuts[i]-cuts[i-1])*j/count;samples.push({...pathPointAt(path,s,offset),s});}
+  }
+  samples.push({...pathPointAt(path,b,offset),s:b});return samples;
+}
 export function projectOnPath(path,p){
   let result=null;
   for(const segment of path.segments){const d=(p.x-segment.a.x)*segment.dx+(p.z-segment.a.z)*segment.dz,t=clamp(d/segment.length,0,1);const x=segment.a.x+(segment.b.x-segment.a.x)*t,z=segment.a.z+(segment.b.z-segment.a.z)*t,dist=Math.hypot(p.x-x,p.z-z);

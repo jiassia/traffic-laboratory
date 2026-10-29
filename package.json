@@ -1,6 +1,6 @@
 {
   "name": "traffic-laboratory",
-  "version": "7.0.2",
+  "version": "7.1.0",
   "license": "MIT",
   "private": true,
   "description": "堵车实验室，包含源码与本地资源的独立网页游戏",

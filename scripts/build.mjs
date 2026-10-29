@@ -68,8 +68,9 @@ await copyFile(path.join(root, 'node_modules/three/LICENSE'), path.join(root, 'l
 await copyFile(path.join(root, 'node_modules/esbuild/LICENSE.md'), path.join(root, 'licenses/esbuild-MIT.txt'));
 await mkdir(path.join(dist, 'licenses'), { recursive: true });
 for (const [from, to] of [
+  ['LICENSE', 'MIT.txt'],
   ['licenses/three-MIT.txt', 'three-MIT.txt'],
-  ['assets/licenses/vehicles-CC0.txt', 'vehicles-CC0.txt'],
-  ['assets/licenses/props-font.txt', 'props-font.txt'],
+  ['licenses/esbuild-MIT.txt', 'esbuild-MIT.txt'],
+  ['assets/licenses/assets-MIT.txt', 'assets-MIT.txt'],
 ]) await copyFile(path.join(root, from), path.join(dist, 'licenses', to));
 console.log(`已构建完整网页目录 dist；${assetKeys.length} 项本地资源；资源合计 ${(assetBytes / 1024 / 1024).toFixed(2)} MiB。`);

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import {roadPath,roadPointAt} from './geometry.mjs';
+import {streetlightLayout} from './road-facilities.mjs';
 
 const material=(color,extra={})=>new THREE.MeshStandardMaterial({color,roughness:.75,...extra});
 const box=(x,y,z,m)=>new THREE.Mesh(new THREE.BoxGeometry(x,y,z),m);
@@ -34,8 +35,30 @@ export class WorldDetails{
       }
       const group=new THREE.Group();group.position.set(f.x,.46,f.z);group.rotation.y=heading;group.userData.facilityId=f.id;
       if(f.type==='streetlight'){
-        const source=this.models.get('lamp');if(source){const model=source.clone(true);model.traverse(n=>{if(n.isMesh){n.userData.asset=true;if(/emitter|lamp_off/i.test(n.name+' '+n.material?.name)){n.material=n.material.clone();n.material.emissive=new THREE.Color(0xffdc9c);this.lampMaterials.push(n.material);}}});group.add(model);}else{const m=material(0x74818a),post=box(.18,6,.18,m);post.position.y=3;group.add(post);const arm=box(2.1,.16,.16,m);arm.position.set(.85,5.9,0);group.add(arm);const bulb=box(.8,.15,.4,material(0xf2dfb6,{emissive:0xffdd99,emissiveIntensity:1}));bulb.position.set(1.4,5.8,0);group.add(bulb);this.lampMaterials.push(bulb.material);}
-        if(this.lights.length<10){const light=new THREE.PointLight(0xffd899,0,20,2);light.position.set(0,5.5,0);group.add(light);this.lights.push(light);}
+        const layout=streetlightLayout(network,f);
+        group.position.set(layout.position.x,.46,layout.position.z);
+        group.rotation.y=layout.heading;
+        const source=this.models.get('lamp');
+        if(source){
+          const model=source.clone(true);
+          model.scale.y=layout.height/5.8;
+          const armGroup=new THREE.Group(),parts=[];
+          model.traverse(n=>{if(n.isMesh&&/curved_arm|lamp_emitter|lamp_shell/i.test(n.name))parts.push(n);});
+          for(const part of parts)armGroup.add(part);
+          armGroup.scale.x=(layout.reach-.35)/1.2;model.add(armGroup);
+          model.traverse(n=>{if(n.isMesh){n.userData.asset=true;if(/emitter|lamp_off/i.test(n.name+' '+n.material?.name)){n.material=n.material.clone();n.material.emissive=new THREE.Color(0xffdc9c);this.lampMaterials.push(n.material);}}});
+          group.add(model);
+        }else{
+          const m=material(0x74818a),post=box(.18,layout.height,.18,m);post.position.y=layout.height/2;group.add(post);
+          const arm=box(layout.reach,.16,.16,m);arm.position.set(layout.reach/2,layout.height-.1,0);group.add(arm);
+          const bulb=box(.8,.15,.4,material(0xf2dfb6,{emissive:0xffdd99,emissiveIntensity:1}));bulb.position.set(layout.reach-.35,layout.height-.2,0);group.add(bulb);
+          this.lampMaterials.push(bulb.material);
+        }
+        if(this.lights.length<10){
+          const light=new THREE.PointLight(0xffd899,0,Math.max(20,layout.reach*4),2);
+          light.position.set(layout.reach-.35,source?layout.height*5.626/5.8:layout.height-.2,0);
+          group.add(light);this.lights.push(light);
+        }
       }else{
         const pole=box(.12,2.9,.12,material(0x9aa5a7));pole.position.y=1.45;group.add(pole);
         const sign=new THREE.Mesh(new THREE.CylinderGeometry(.78,.78,.09,f.type==='stopSign'?8:40),material(f.type==='stopSign'?0xb7473b:0xe4e9e5));sign.rotation.x=Math.PI/2;sign.position.y=2.7;group.add(sign);

@@ -45,6 +45,25 @@ export function junctionLayout(network){
     // The closed form accelerates very acute straight forks. Curves use their actual
     // mouth positions below, so parallel starting tangents do not imply infinite trims.
     const initial=layout.arms.map(a=>mouth(network,a,0));
+    if(initial.length>=3){
+      const ordered=[...initial].sort((a,b)=>Math.atan2(a.outward.z,a.outward.x)-Math.atan2(b.outward.z,b.outward.x));
+      for(let i=0;i<ordered.length;i++){
+        const arm=ordered[i],previous=ordered[(i+ordered.length-1)%ordered.length],next=ordered[(i+1)%ordered.length];
+        // Every corner receives room for a complete bus, irrespective of the
+        // current lane-turn permissions. The road-wide budget below still owns
+        // the final mouth positions at both ends of each road.
+        const required=Math.max(previous.width,next.width)/2+10.923;
+        layout.arms.find(a=>a.roadId===arm.roadId).requiredTrim=Math.max(BASE_TRIM,required);
+      }
+    }
+    if(initial.length===2){
+      const angle=Math.acos(Math.max(-1,Math.min(1,-dot(initial[0].outward,initial[1].outward))));
+      if(angle>.08&&angle<Math.PI-.08){
+        const radius=Math.max(...initial.map(a=>a.width/2))+7;
+        const tangent=radius*Math.tan(angle/2);
+        for(const arm of layout.arms)arm.requiredTrim=Math.max(arm.requiredTrim,tangent);
+      }
+    }
     // A layout rule for this teaching model, not a calibrated road-design standard:
     // opposite unequal carriageways get longitudinal space for a gradual lane fan.
     if(initial.length===2&&dot(initial[0].outward,initial[1].outward)<-.95){

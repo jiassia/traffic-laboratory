@@ -2,17 +2,19 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { VEHICLE_TYPES,junctionConnections } from './simulation.mjs';
-import {roadPath,roadPointAt,makePath,pathPointAt} from './geometry.mjs';
+import {roadPath,roadPointAt,makePath,pathPointAt,samplePath} from './geometry.mjs';
+import {signalApproaches,trafficApproach,SIGNAL_STOP_SETBACK} from './road-facilities.mjs';
 import {laneCounts,laneOffset,roadWidth,hasLaneConfiguration,effectiveLaneTurns} from './lanes.mjs';
 import {WorldDetails} from './world-details.js';
 import {junctionLayout} from './junction-layout.mjs';
-import {pavementFootprints,dominantThroughPair,cornerBends} from './junction-design.mjs';
+import {pavementFootprints,cornerBends,junctionSurfaces} from './junction-design.mjs';
 import {terminalIds,terminalLabel} from './terminals.mjs';
 import {roadTurnarounds} from './turnarounds.mjs';
 
 export const assetUrl = path => new URL(`./assets/${path}`, document.baseURI).href;
 if (typeof window !== 'undefined') window.THREE = THREE;
 const BG=0xeaf0e8, ROAD=0x1d2428, EDGE=0x405057, AMBER=0xffbd4c, GREEN=0x74edb3;
+const SIGNAL_COLORS={red:0xf22c2c,amber:0xffbc28,green:0x24d86b};
 const mat=(color,other={})=>new THREE.MeshStandardMaterial({color,roughness:.83,...other});
 const makeBox=(w,h,d,material)=>new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material);
 const materials={road:mat(ROAD),edge:mat(EDGE),line:mat(0xc6c9c5),ground:mat(BG),concrete:mat(0x99a19e),dark:mat(0x16242b),selected:mat(AMBER,{emissive:AMBER,emissiveIntensity:.2})};
@@ -116,9 +118,16 @@ export class TrafficScene {
   turnaroundGuidance(pads,color){
     for(const pad of pads){
       for(const edge of pad.outline)this.pathLine(edge,color,.50);
-      const guide=this.pathLine(pad.guide,0xe3e8e1,.51,true);guide.material.dashSize=1.4;guide.material.gapSize=1.2;
-      const path=makePath(pad.guide),tip=pathPointAt(path,path.length*.67),dx=tip.tangentX,dz=tip.tangentZ;
-      this.pathLine([{x:tip.x-dx*1.4-dz*.8,z:tip.z-dz*1.4+dx*.8},tip,{x:tip.x-dx*1.4+dz*.8,z:tip.z-dz*1.4-dx*.8}],0xe3e8e1,.54);
+      if(pad.guide&&pad.guide.length>=2){
+        // 绘制单根整洁醒目的 U 形导向虚线，杜绝密集碎渣
+        const guide=this.pathLine(pad.guide,0xd0dad0,.50,true);
+        guide.material.dashSize=2.4;guide.material.gapSize=3.2;
+        guide.material.transparent=true;guide.material.opacity=0.75;guide.material.depthWrite=false;
+        // 在 U 形弧线顶点处绘制贴合朝向的平滑导向箭头
+        const path=makePath(pad.guide),tip=pathPointAt(path,path.length*.60);
+        const dx=tip.tangentX,dz=tip.tangentZ;
+        this.pathLine([{x:tip.x-dx*1.6-dz*1.2,z:tip.z-dz*1.6+dx*1.2},{x:tip.x,z:tip.z},{x:tip.x-dx*1.6+dz*1.2,z:tip.z-dz*1.6-dx*1.2}],0xd0dad0,.50);
+      }
     }
   }
   batchRoadLines(){
@@ -135,96 +144,336 @@ export class TrafficScene {
       this.roadGroup.add(new THREE.LineSegments(geometry,batch.material));
     }
   }
-  laneArrow(network,road,d,offset,forward,turns){
-    const sign=forward?1:-1;
-    const at=(s,o=offset)=>roadPointAt(network,road,s,o);
+  laneArrow(network,road,d,offset,forward,turns,options={}){
+    if(options?.hasUTurn){
+      // 绘制真实 U 形掉头标线：右侧进、180度弧线向左折返、末端朝后来车方向带箭头
+      const latSign=forward?1:-1;
+      const uPts=[];
+      const stemLen=2.4;
+      uPts.push(roadPointAt(network,road,d-latSign*stemLen,offset+latSign*0.5));
+      uPts.push(roadPointAt(network,road,d,offset+latSign*0.5));
+      const arcSteps=8,arcR=0.5;
+      for(let k=0;k<=arcSteps;k++){
+        const ang=k*Math.PI/arcSteps;
+        const arcS=d+latSign*Math.sin(ang)*arcR;
+        const arcOff=offset+latSign*Math.cos(ang)*arcR;
+        uPts.push(roadPointAt(network,road,arcS,arcOff));
+      }
+      const returnTipS=d-latSign*0.8;
+      const returnOff=offset-latSign*0.5;
+      uPts.push(roadPointAt(network,road,returnTipS,returnOff));
+      this.pathLine(uPts,0xe3e8e1,.50);
+      const tipP=roadPointAt(network,road,returnTipS,returnOff);
+      const fwdP=roadPointAt(network,road,returnTipS+latSign*0.8,returnOff);
+      const backDx=tipP.x-fwdP.x,backDz=tipP.z-fwdP.z;
+      const bLen=Math.hypot(backDx,backDz)||1;
+      const bTx=backDx/bLen,bTz=backDz/bLen;
+      const bNx=-bTz,bNz=bTx;
+      this.pathLine([
+        {x:tipP.x-bTx*0.8-bNx*0.6,z:tipP.z-bTz*0.8-bNz*0.6},
+        {x:tipP.x,z:tipP.z},
+        {x:tipP.x-bTx*0.8+bNx*0.6,z:tipP.z-bTz*0.8+bNz*0.6}
+      ],0xe3e8e1,.50);
+      return;
+    }
+    if(!turns||!turns.length)return;
     const hasThrough=turns.includes('through');
     const hasLeft=turns.includes('left');
     const hasRight=turns.includes('right');
+    if(!hasThrough&&!hasLeft&&!hasRight)return;
+
+    const sign=forward?1:-1;
+    const latSign=sign;
+    const at=(s,o=offset)=>roadPointAt(network,road,s,o);
     const lineColor=0xe2e8f0;
 
-    // 1. 直行主干与标准人字箭头 (长度适中，翼宽严格收在车道内)
-    if(hasThrough||(!hasLeft&&!hasRight)){
-      const tail=at(d-sign*2.2);
-      const tip=at(d+sign*2.0);
-      this.pathLine([tail,tip],lineColor,.55);
-      this.pathLine([at(d+sign*1.0,offset-.55),tip,at(d+sign*1.0,offset+.55)],lineColor,.55);
+    // 1. 直行主干与标准人字箭头 (沿道路几何采样平滑曲线，杜绝直线割角斜穿)
+    if(hasThrough){
+      const stem=[];
+      const steps=6;
+      for(let i=0;i<=steps;i++){
+        const s=d-sign*2.2+sign*4.2*(i/steps);
+        stem.push(at(s,offset));
+      }
+      this.pathLine(stem,lineColor,.55);
+      const tip=at(d+sign*2.0,offset);
+      const wingLeft=at(d+sign*1.0,offset-latSign*0.55);
+      const wingRight=at(d+sign*1.0,offset+latSign*0.55);
+      this.pathLine([wingLeft,tip,wingRight],lineColor,.55);
     }
 
-    // 2. 左转优雅分叉臂与小巧尖端 (外伸量严格限制在 1.0 米内，绝不越线到隔壁车道)
+    // 2. 左转优雅分叉臂与小巧尖端 (外伸量收在车道内，侧移随 forward 正负号翻转)
     if(hasLeft){
-      const branchStart=hasThrough?at(d-sign*0.5):at(d-sign*1.8);
-      const elbow=at(d+sign*0.8,offset-0.45);
-      const tip=at(d+sign*0.8,offset-1.0);
-      this.pathLine([branchStart,elbow,tip],lineColor,.55);
-      this.pathLine([at(d+sign*1.2,offset-0.65),tip,at(d+sign*0.4,offset-0.65)],lineColor,.55);
+      const branchStartD=hasThrough?(d-sign*0.5):(d-sign*1.8);
+      const tipD=d+sign*0.8;
+      const branch=[];
+      const steps=6;
+      for(let i=0;i<=steps;i++){
+        const t=i/steps;
+        const s=branchStartD+(tipD-branchStartD)*(t*(2-t));
+        const o=offset-latSign*(1.0*(t*t));
+        branch.push(at(s,o));
+      }
+      if(!hasThrough){
+        const tail=[];
+        const tailSteps=3;
+        for(let i=0;i<=tailSteps;i++){
+          const s=(d-sign*2.2)+(branchStartD-(d-sign*2.2))*(i/tailSteps);
+          tail.push(at(s,offset));
+        }
+        this.pathLine([...tail,...branch.slice(1)],lineColor,.55);
+      }else{
+        this.pathLine(branch,lineColor,.55);
+      }
+      const tip=at(tipD,offset-latSign*1.0);
+      const wingAhead=at(tipD+sign*0.35,offset-latSign*0.65);
+      const wingBehind=at(tipD-sign*0.35,offset-latSign*0.65);
+      this.pathLine([wingAhead,tip,wingBehind],lineColor,.55);
     }
 
-    // 3. 右转优雅分叉臂与小巧尖端 (严格控制在车道内部，与直行平滑组合)
+    // 3. 右转优雅分叉臂与小巧尖端 (严格控制在车道内部，与通行方向及切线对齐)
     if(hasRight){
-      const branchStart=hasThrough?at(d-sign*0.5):at(d-sign*1.8);
-      const elbow=at(d+sign*0.8,offset+0.45);
-      const tip=at(d+sign*0.8,offset+1.0);
-      this.pathLine([branchStart,elbow,tip],lineColor,.55);
-      this.pathLine([at(d+sign*1.2,offset+0.65),tip,at(d+sign*0.4,offset+0.65)],lineColor,.55);
+      const branchStartD=hasThrough?(d-sign*0.5):(d-sign*1.8);
+      const tipD=d+sign*0.8;
+      const branch=[];
+      const steps=6;
+      for(let i=0;i<=steps;i++){
+        const t=i/steps;
+        const s=branchStartD+(tipD-branchStartD)*(t*(2-t));
+        const o=offset+latSign*(1.0*(t*t));
+        branch.push(at(s,o));
+      }
+      if(!hasThrough){
+        const tail=[];
+        const tailSteps=3;
+        for(let i=0;i<=tailSteps;i++){
+          const s=(d-sign*2.2)+(branchStartD-(d-sign*2.2))*(i/tailSteps);
+          tail.push(at(s,offset));
+        }
+        this.pathLine([...tail,...branch.slice(1)],lineColor,.55);
+      }else{
+        this.pathLine(branch,lineColor,.55);
+      }
+      const tip=at(tipD,offset+latSign*1.0);
+      const wingAhead=at(tipD+sign*0.35,offset+latSign*0.65);
+      const wingBehind=at(tipD-sign*0.35,offset+latSign*0.65);
+      this.pathLine([wingAhead,tip,wingBehind],lineColor,.55);
     }
   }
   setNetwork(network,selection=null){
-    this.network=network;this.selection=selection;this.clear(this.roadGroup);this.phaseHeads=[];this.labelLayer.innerHTML='';this.labels=[];this.roadVisuals.clear();
+    this.network=network;this.selection=selection;this.clear(this.roadGroup);this.phaseHeads=[];this.bendVisuals=[];this.labelLayer.innerHTML='';this.labels=[];this.roadVisuals.clear();
     const layout=junctionLayout(network),connections=junctionConnections(network);this.junctionGeometry=layout;
     const envelope={vehicleLength:Math.max(...VEHICLE_TYPES.map(v=>v.length)),vehicleWidth:Math.max(...VEHICLE_TYPES.map(v=>v.width)),margin:.65};
+    const bends=cornerBends(network,0,connections,envelope);
+    const intersections=junctionSurfaces(network,connections,envelope);
     const pavement=pavementFootprints(network,connections,envelope),curbs=pavementFootprints(network,connections,{...envelope,curbMargin:1.35});
     this.pavementMesh(curbs,materials.edge,.25);this.pavementMesh(pavement,materials.road,.43);this.pavementGeometry={polygons:pavement,connections};
-    const trim=(road,id)=>layout.byNode.get(id)?.arms.find(a=>a.roadId===road.id)?.trim||0;
+    const trim=(road,id)=>{const bend=bends.get(id),visual=bend?(bend.roadA.id===road.id?bend.renderTrimA??bend.trimA:bend.renderTrimB??bend.trimB):0,mouth=intersections.get(id)?.mouths.find(a=>a.roadId===road.id);return Math.max(layout.byNode.get(id)?.arms.find(a=>a.roadId===road.id)?.trim||0,visual,mouth?.renderTrim??0);};
     for(const road of network.roads){
       const path=roadPath(network,road),width=roadWidth(road),pads=roadTurnarounds(network,road,connections,envelope);
-      const start=Math.max(trim(road,road.a),pads.find(p=>p.end==='a')?.trim||0),end=path.length-Math.max(trim(road,road.b),pads.find(p=>p.end==='b')?.trim||0),steps=Math.max(2,Math.ceil((end-start)/3)),points=[];
-      for(let i=0;i<=steps;i++){const p=roadPointAt(network,road,start+(end-start)*i/steps);points.push({x:p.x,z:p.z});}
+      const start=Math.max(trim(road,road.a),pads.find(p=>p.end==='a')?.trim||0),end=path.length-Math.max(trim(road,road.b),pads.find(p=>p.end==='b')?.trim||0);
       const surface=materials.road.clone();
       for(const pad of pads){this.pavementMesh([pad.curbPolygon],materials.edge,.25);this.pavementMesh([pad.polygon],surface,.445);}
       this.turnaroundGuidance(pads,selection===road.id?AMBER:0xbac6c7);
       if(end-start>.05){
-        this.strip(points,width,surface,.445);
-        for(const side of[-1,1]){const edge=[];for(let i=0;i<=steps;i++)edge.push(roadPointAt(network,road,start+(end-start)*i/steps,side*(width/2-.45)));this.pathLine(edge,selection===road.id?AMBER:0xbac6c7,.48);}
-        const counts=laneCounts(road);
-        if(hasLaneConfiguration(road)){
-          for(let i=1;i<counts.total;i++){const offset=-counts.total*1.8+i*3.6,line=[];for(let j=0;j<=steps;j++)line.push(roadPointAt(network,road,start+(end-start)*j/steps,offset));const divider=!road.oneWay&&i===counts.backward;this.pathLine(line,divider?0xd5bc76:0xe3e8e1,.49,!divider);}
-        }else if(!road.oneWay)this.pathLine(points,0xbac6c7,.48,true);
-        const roadSpan=end-start;
-        if(roadSpan>=16){
-          for(const forward of [true,false]){
-            const count=forward?counts.forward:counts.backward;
-            if(!count)continue;
-            // 真实道路规范：导向箭头位于驶入交叉路口前段；正向驶往 end，反向驶往 start，各在路端，绝不对撞
-            const arrowD=forward?Math.max(start+5,end-8):Math.min(end-5,start+8);
-            for(let lane=0;lane<count;lane++){
-              const turns=terminalIds(network,'sink').includes(forward?road.b:road.a)?['through']:effectiveLaneTurns(network,road,forward,lane);
-              this.laneArrow(network,road,arrowD,laneOffset(road,forward,lane),forward,turns);
+        // 使用 samplePath 获取包含原始几何端点与细分点的 s 序列
+        const samples=samplePath(path,start,end,3);
+        const n=samples.length;
+        if(n>=2){
+          const vertices=[],indices=[];
+          for(let i=0;i<n;i++){
+            const s=samples[i].s;
+            const left=roadPointAt(network,road,s,-width/2);
+            const right=roadPointAt(network,road,s,width/2);
+            vertices.push(left.x,.445,left.z,right.x,.445,right.z);
+          }
+          for(let i=0;i<n-1;i++){
+            // 严格保证三角形法向 normal.y > 0 的 CCW 绕序：
+            // 三角形 1: 2*i (左前) -> 2*i+1 (右前) -> 2*i+2 (左后)
+            // 三角形 2: 2*i+1 (右前) -> 2*i+3 (右后) -> 2*i+2 (左后)
+            indices.push(i*2,i*2+1,i*2+2,i*2+1,i*2+3,i*2+2);
+          }
+          const geom=new THREE.BufferGeometry();
+          geom.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));
+          geom.setIndex(indices);
+          geom.computeVertexNormals();
+          const roadMesh=new THREE.Mesh(geom,surface);
+          roadMesh.receiveShadow=true;
+          roadMesh.userData.isRoadMesh=true;
+          this.roadGroup.add(roadMesh);
+
+          // 边线：共用同一组 samples 采样
+          for(const side of[-1,1]){
+            const edge=samples.map(p=>roadPointAt(network,road,p.s,side*(width/2-.45)));
+            this.pathLine(edge,selection===road.id?AMBER:0xbac6c7,.48);
+          }
+
+          // 分割线：共用同一组 samples 采样
+          const counts=laneCounts(road);
+          if(hasLaneConfiguration(road)){
+            for(let i=1;i<counts.total;i++){
+              const offset=-counts.total*1.8+i*3.6;
+              const line=samples.map(p=>roadPointAt(network,road,p.s,offset));
+              const divider=!road.oneWay&&i===counts.backward;
+              this.pathLine(line,divider?0xd5bc76:0xe3e8e1,.49,!divider);
+            }
+          }else if(!road.oneWay){
+            const line=samples.map(p=>roadPointAt(network,road,p.s,0));
+            this.pathLine(line,0xbac6c7,.48,true);
+          }
+
+          // 导向箭头：短路段不挤压箭头，回车区内侧车道画 U 形掉头符号，外侧不绘箭头
+          const roadSpan=end-start;
+          const bothDirections=!road.oneWay&&counts.forward>0&&counts.backward>0;
+          const minSpan=bothDirections?24:16;
+          if(roadSpan>=minSpan){
+            for(const forward of [true,false]){
+              const count=forward?counts.forward:counts.backward;
+              if(!count)continue;
+              const targetNode=forward?road.b:road.a;
+              const isTurnaround=pads.some(p=>p.end===(forward?'b':'a'));
+              if(terminalIds(network,'source').includes(targetNode))continue;
+
+              // 面向回车区时：仅内侧车道绘制 U 形掉头标志，消除直行箭头冲撞死胡同
+              if(isTurnaround){
+                const arrowD=forward?(end-7):(start+7);
+                this.laneArrow(network,road,arrowD,laneOffset(road,forward,0),forward,[],{hasUTurn:true});
+                continue;
+              }
+
+              // 面向普通路口进道时：
+              const controlled=network.signals[targetNode]?.enabled||layout.byNode.get(targetNode)?.arms.length>=3;
+              const setback=controlled&&count>1?SIGNAL_STOP_SETBACK:0;
+              const arrowD=forward?(end-8-setback):(start+8+setback);
+              if(forward&&arrowD-2.5<start)continue;
+              if(!forward&&arrowD+2.5>end)continue;
+
+              for(let lane=0;lane<count;lane++){
+                const turns=terminalIds(network,'sink').includes(targetNode)?['through']:effectiveLaneTurns(network,road,forward,lane);
+                if(!turns||!turns.length)continue;
+                this.laneArrow(network,road,arrowD,laneOffset(road,forward,lane),forward,turns);
+              }
             }
           }
         }
       }
+
+      // 端点停止线与封闭修剪线
       const ports=new Set([...terminalIds(network,'source'),...terminalIds(network,'sink')]);
-      if(road.oneWay)for(const endNode of [road.a,road.b])if(!ports.has(endNode)&&network.roads.filter(r=>r.a===endNode||r.b===endNode).length===1){const s=endNode===road.a?0:path.length;this.pathLine([roadPointAt(network,road,s,-width/2+.45),roadPointAt(network,road,s,width/2-.45)],selection===road.id?AMBER:0xbac6c7,.50);}
+      for(const endNode of [road.a,road.b]){
+        const isEndA=endNode===road.a;
+        const isTurnaround=pads.some(p=>p.end===(isEndA?'a':'b'));
+        if(isTurnaround||ports.has(endNode))continue;
+        const nodeLayout=layout.byNode.get(endNode);
+        const attachedCount=network.roads.filter(r=>r.a===endNode||r.b===endNode).length;
+        const s=isEndA?start:end;
+
+        // 1. 进入路口的驶入车道停止线 (仅对驶入路口方向车道绘制)
+        const isIntersection=nodeLayout&&(nodeLayout.arms.length>=3||(nodeLayout.arms.length===2&&!bends.has(endNode)));
+        if(isIntersection&&!network.signals[endNode]?.enabled){
+          for(const line of trafficApproach(network,road,endNode).stopLines)this.pathLine(line,0xe3e8e1,.50);
+        }
+
+        // 2. 无回车区的单向道路断头末端横向收口线 (对齐修剪后的实际末端 s)
+        if(road.oneWay&&attachedCount===1&&endNode===road.b){
+          this.pathLine([roadPointAt(network,road,s,-width/2+.45),roadPointAt(network,road,s,width/2-.45)],selection===road.id?AMBER:0xbac6c7,.50);
+        }
+      }
       const middle=roadPointAt(network,road,path.length/2);const badge=document.createElement('div');badge.className='road-badge hidden';this.labelLayer.append(badge);this.roadVisuals.set(road.id,{surface,badge,p:{x:middle.x,z:middle.z,y:1},level:null});
     }
     this.junctionGuidance(network,layout,connections);
-    const bends = cornerBends(network, 0);
     for (const bend of bends.values()) {
+      const surface=materials.road.clone();surface.color.setHex(0xffffff);surface.vertexColors=true;
+      const mesh=this.pavementMesh([bend.polygon],surface,.445);
+      if(mesh){
+        mesh.name='bend_surface';mesh.userData.isRoadMesh=true;
+        const colors=new Float32Array(mesh.geometry.getAttribute('position').count*3),base=new THREE.Color(ROAD);
+        for(let i=0;i<colors.length;i+=3){colors[i]=base.r;colors[i+1]=base.g;colors[i+2]=base.b;}
+        mesh.geometry.setAttribute('color',new THREE.BufferAttribute(colors,3));
+        this.bendVisuals.push({mesh,roadIds:[bend.roadA.id,bend.roadB.id],rows:bend.surfaceOuter.length});
+      }
       const active = selection === bend.roadA.id || selection === bend.roadB.id;
       this.pathLine(bend.outerCurve, active ? AMBER : 0xbac6c7, .48);
       this.pathLine(bend.innerCurve, active ? AMBER : 0xbac6c7, .48);
-      if (bend.centerCurve) {
+      if (bend.markings && bend.markings.length) {
+        for (const m of bend.markings) {
+          this.pathLine(m.points, m.divider ? 0xd5bc76 : 0xe3e8e1, .49, !m.divider);
+        }
+      } else if (bend.centerCurve) {
         this.pathLine(bend.centerCurve, bend.divider ? 0xd5bc76 : 0xe3e8e1, .49, !bend.divider);
+      }
+    }
+    for(const junction of intersections.values()){
+      const surface=materials.road.clone();surface.color.setHex(0xffffff);surface.vertexColors=true;
+      const mesh=this.pavementMesh([junction.polygon],surface,.445);
+      if(mesh){
+        mesh.name='junction_surface';mesh.userData.isRoadMesh=true;
+        const count=mesh.geometry.getAttribute('position').count,colors=new Float32Array(count*3),weights=new Float32Array(count*junction.mouths.length),base=new THREE.Color(ROAD);
+        for(let i=0;i<count;i++){
+          colors.set([base.r,base.g,base.b],i*3);
+          const p=junction.polygon[i],distances=junction.mouths.map(arm=>{
+            const a=arm.left,b=arm.right,dx=b.x-a.x,dz=b.z-a.z,t=THREE.MathUtils.clamp(((p.x-a.x)*dx+(p.z-a.z)*dz)/(dx*dx+dz*dz),0,1);
+            return (p.x-a.x-t*dx)**2+(p.z-a.z-t*dz)**2;
+          }),exact=distances.findIndex(d=>d<1e-10),values=distances.map((d,j)=>exact>=0?Number(j===exact):1/Math.max(.02,d)**2),sum=values.reduce((a,b)=>a+b,0);
+          values.forEach((value,j)=>weights[i*values.length+j]=value/sum);
+        }
+        mesh.geometry.setAttribute('color',new THREE.BufferAttribute(colors,3));
+        this.bendVisuals.push({mesh,roadIds:junction.mouths.map(arm=>arm.roadId),weights});
+      }
+      const color=junction.mouths.some(arm=>arm.roadId===selection)?AMBER:0xbac6c7;
+      for(const curve of junction.edgeCurves)this.pathLine(curve,color,.48);
+      // Continue the approach lane boundaries through the paved transition up
+      // to the real stopping area. The outer curb uses the rounded contour.
+      for(const arm of junction.mouths){
+        const road=arm.road,counts=laneCounts(road),incoming=arm.end==='b'?counts.forward:counts.backward,path=roadPath(network,road),stopTrim=arm.engineTrim+(incoming>1?SIGNAL_STOP_SETBACK:0),near=Math.min(arm.trim,stopTrim);
+        if(arm.trim-near<.05)continue;
+        const samples=samplePath(path,arm.end==='a'?near:path.length-arm.trim,arm.end==='a'?arm.trim:path.length-near,2);
+        if(hasLaneConfiguration(road))for(let i=1;i<counts.total;i++){
+          const offset=-counts.total*1.8+i*3.6,divider=!road.oneWay&&i===counts.backward;
+          this.pathLine(samples.map(p=>roadPointAt(network,road,p.s,offset)),divider?0xd5bc76:0xe3e8e1,.49,!divider);
+        }
+        else if(!road.oneWay)this.pathLine(samples,0xbac6c7,.49,true);
+      }
+    }
+    // 多车道信号灯体系：基于 signalApproaches 在各进口设置门架横梁、车道灯头及 6.5m 停止线
+    const approaches = signalApproaches(network);
+    for (const app of approaches) {
+      for (const line of app.stopLines) this.pathLine(line, 0xe3e8e1, .50);
+      const mastH = app.height + .65;
+      const mast = makeBox(.24, mastH, .24, materials.edge);
+      mast.name='signal_pole';
+      mast.position.set(app.pole.x, mastH / 2, app.pole.z);
+      this.roadGroup.add(mast);
+
+      if (app.crossbar && app.crossbar.length >= 2) {
+        for (let i = 1; i < app.crossbar.length; i++) {
+          const p0 = app.crossbar[i - 1], p1 = app.crossbar[i];
+          const dx = p1.x - p0.x, dz = p1.z - p0.z, len = Math.hypot(dx, dz);
+          if (len > 0.05) {
+            const beam = makeBox(.16, .16, len, materials.edge);
+            beam.name='signal_crossbar';
+            beam.position.set((p0.x + p1.x) / 2, p0.y, (p0.z + p1.z) / 2);
+            beam.rotation.y = Math.atan2(dx, dz);
+            this.roadGroup.add(beam);
+          }
+        }
+      }
+      for (const h of app.heads) {
+        const hanger = makeBox(.08, .6, .08, materials.edge);
+        hanger.position.set(h.x, h.y + .35, h.z);
+        this.roadGroup.add(hanger);
+        const g = this.makeSignalHead();
+        g.position.set(h.x, h.y, h.z);
+        g.rotation.y = h.faceHeading;
+        this.roadGroup.add(g);
+        this.phaseHeads.push({ nodeId: app.nodeId, roadId: app.roadId, axis: h.axis, object: g });
       }
     }
     for(const node of network.nodes){
       const attached=network.roads.filter(r=>r.a===node.id||r.b===node.id),deg=attached.length;
       if([...terminalIds(network,'source'),...terminalIds(network,'sink')].includes(node.id)){const source=terminalIds(network,'source').includes(node.id),road=attached[0],path=road&&roadPath(network,road),p=road&&roadPointAt(network,road,road.a===node.id?0:path.length);const gate=this.makeGate(source,road?roadWidth(road):9.6,road?Array.from({length:laneCounts(road).forward},(_,i)=>(source?-1:1)*laneOffset(road,true,i)):[0]);gate.position.set(node.x,.4,node.z);gate.rotation.y=p?p.yaw+(road.b===node.id?Math.PI:0):Math.PI/2;this.roadGroup.add(gate);const label=document.createElement('div');label.className=`map-label ${source?'source':'sink'}`;label.textContent=terminalLabel(network,source?'source':'sink',node.id);this.labelLayer.append(label);this.labels.push({el:label,p:{x:node.x,z:node.z,y:8}});
       }else{const marker=new THREE.Mesh(new THREE.CylinderGeometry(.65,.65,.16,18),mat(selection===node.id?AMBER:0x9cb9c6));marker.position.set(node.x,.55,node.z);marker.userData.editorMarker=true;this.roadGroup.add(marker);}
-      if(network.signals[node.id]?.enabled){const installed=(network.facilities||[]).filter(f=>f.type==='trafficLight'&&f.nodeId===node.id);const heads=installed.length?installed:[{x:node.x-7.5,z:node.z+5,heading:Math.PI/2},{x:node.x+5,z:node.z-7.5,heading:0}];
-        for(const f of heads){const g=this.makeSignal();g.position.set(f.x,.45,f.z);g.rotation.y=f.heading||0;this.roadGroup.add(g);this.phaseHeads.push({nodeId:node.id,axis:Math.abs(Math.sin(f.heading||0))>=Math.abs(Math.cos(f.heading||0))?'ew':'ns',object:g});}
-      }
+
     }
     this.batchRoadLines();this.details.setNetwork(network,selection);this.setModeVisibility();
   }
@@ -234,7 +483,13 @@ export class TrafficScene {
     const anchors=[points[0],points.at(-1),...controlPoints];for(const p of anchors){const disk=new THREE.Mesh(new THREE.RingGeometry(1.2,1.6,24),new THREE.MeshBasicMaterial({color,side:THREE.DoubleSide,toneMapped:false}));disk.rotation.x=-Math.PI/2;disk.position.set(p.x,.7,p.z);this.previewGroup.add(disk);}
   }
   setHover(item){this.clear(this.hoverGroup);if(!item)return;const color=item.erase?0xdd664c:0x2a9872;if(item.roadId){const road=this.network.roads.find(r=>r.id===item.roadId);if(road){const path=roadPath(this.network,road);this.strip(item.segmentPoints||path.points,roadWidth(road)+.6,new THREE.MeshBasicMaterial({color,transparent:true,opacity:.22,depthWrite:false,toneMapped:false,side:THREE.DoubleSide}),.62,this.hoverGroup);}}
-    if(item.point){const disk=new THREE.Mesh(new THREE.RingGeometry(1.1,1.5,32),new THREE.MeshBasicMaterial({color:item.valid===false?0xff7666:color,side:THREE.DoubleSide,toneMapped:false}));disk.rotation.x=-Math.PI/2;disk.position.set(item.point.x,.72,item.point.z);this.hoverGroup.add(disk);if(item.facilityType){const pole=makeBox(.22,item.facilityType==='streetlight'?6:3,.22,new THREE.MeshBasicMaterial({color,transparent:true,opacity:.5}));pole.position.set(item.point.x,item.facilityType==='streetlight'?3:1.5,item.point.z);this.hoverGroup.add(pole);}}
+    if(item.point){const disk=new THREE.Mesh(new THREE.RingGeometry(1.1,1.5,32),new THREE.MeshBasicMaterial({color:item.valid===false?0xff7666:color,side:THREE.DoubleSide,toneMapped:false}));disk.rotation.x=-Math.PI/2;disk.position.set(item.point.x,.72,item.point.z);this.hoverGroup.add(disk);if(item.facilityType){let poleH = item.facilityType === 'streetlight' ? 6 : 3;
+        if(item.facilityType === 'streetlight' && item.roadId){
+          const road = this.network.roads.find(r => r.id === item.roadId);
+          if(road) poleH = Math.min(12, Math.max(6, 5.8 + roadWidth(road) * .12));
+        }
+        const pole = makeBox(.22, poleH, .22, new THREE.MeshBasicMaterial({color,transparent:true,opacity:.5}));
+        pole.position.set(item.point.x, poleH / 2, item.point.z);this.hoverGroup.add(pole);}}
   }
   setEditingPerspective(enabled){this.editPerspective=enabled;this.currentCamera=enabled&&!this.fallback?this.camera:this.editCamera;if(this.controls)this.controls.enabled=enabled&&!this.fallback;this.setNavigationTool(this.navigationTool);this.fit();}
   setNavigationTool(tool='select'){this.navigationTool=tool;if(this.controls)this.controls.mouseButtons={LEFT:this.mode!=='edit'||this.editPerspective&&tool==='select'?THREE.MOUSE.ROTATE:null,MIDDLE:THREE.MOUSE.PAN,RIGHT:THREE.MOUSE.ROTATE};}
@@ -245,6 +500,27 @@ export class TrafficScene {
   followVehicle(id){const car=this.snapshot?.vehicles.find(v=>String(v.id)===String(id));if(!car)return;this.focusPoint(car,25);this.followId=car.id;}
   environment(settings){this.settings={...this.settings,...settings};this.details.environment(this.settings);const night=this.settings.timeOfDay==='night',bg=night?0x0a1723:BG;this.scene.background.setHex(bg);this.floor.material.color.setHex(bg);this.hemisphere.intensity=night?.75:1.8;this.sun.intensity=night?.5:3.2;this.fill.intensity=night?.4:1;const far={clear:1400,rain:900,fog:540,snow:750}[this.settings.weather]||1400;this.scene.fog=new THREE.Fog(bg,160,far);}
   makeGate(source,width=9.6,laneOffsets=[0]){const group=new THREE.Group();const light=mat(source?GREEN:AMBER,{emissive:source?GREEN:AMBER,emissiveIntensity:1.3});for(const x of[-(width/2+.6),width/2+.6]){const post=makeBox(1.15,5.5,3.4,materials.concrete);post.position.set(x,2.75,0);post.castShadow=true;group.add(post);const bar=makeBox(.16,3.8,.28,light);bar.position.set(x*.88,2.7,-.6);group.add(bar);}const top=makeBox(width+2.7,1,3.4,materials.concrete);top.position.y=5.7;top.castShadow=true;group.add(top);for(let z=-1;z<=1;z++){const strip=makeBox(width-1,.06,.12,light);strip.position.set(0,.13,z);group.add(strip);}const direction=source?1:-1;const arrowMaterial=new THREE.MeshBasicMaterial({color:source?0x399b72:0xc28c43,toneMapped:false,side:THREE.DoubleSide});for(const laneX of laneOffsets){const arrowGeometry=new THREE.BufferGeometry();arrowGeometry.setAttribute('position',new THREE.Float32BufferAttribute([laneX-1,.17,5.5,laneX,.17,5.5+direction*2.4,laneX+1,.17,5.5],3));group.add(new THREE.Mesh(arrowGeometry,arrowMaterial));const stem=makeBox(.5,.07,2.6,arrowMaterial);stem.position.set(laneX,.17,5.5-direction*1.2);group.add(stem);}return group;}
+  makeSignalHead(){
+    const g=new THREE.Group();
+    const body=makeBox(.42,1.15,.32,materials.edge);
+    body.position.y=0;
+    g.add(body);
+    const lensGeom=new THREE.CylinderGeometry(.12,.12,.08,16);
+    lensGeom.rotateX(Math.PI/2);
+    for(const [i,color] of ['red','amber','green'].entries()){
+      const base=SIGNAL_COLORS[color];
+      const mat=new THREE.MeshBasicMaterial({
+        color:i===0?base:0x222222,
+        toneMapped:false
+      });
+      const mesh=new THREE.Mesh(lensGeom,mat);
+      mesh.name=`lens_${color}`;
+      mesh.position.set(0,.32-i*.32,.17);
+      g.add(mesh);
+    }
+    g.traverse(n=>{if(n.isMesh){n.userData.asset=true;n.material=n.material.clone();}});
+    return g;
+  }
   makeSignal(){
     let g=this.models.get('signal')?.clone(true);if(!g){g=new THREE.Group();const post=makeBox(.18,4.8,.18,materials.edge);post.position.y=2.4;g.add(post);const box=makeBox(.7,1.9,.5,materials.dark);box.position.y=4.7;g.add(box);for(const [i,color]of['red','amber','green'].entries()){const mesh=new THREE.Mesh(new THREE.SphereGeometry(.21,12,10),mat(0x333333));mesh.name=`lens_${color}`;mesh.position.set(0,5.25-i*.55,.28);g.add(mesh);}}
     g.traverse(n=>{if(n.isMesh){n.userData.asset=true;n.material=n.material.clone();}});return g;
@@ -258,7 +534,7 @@ export class TrafficScene {
     this.snapshot=snapshot;if(!snapshot)return;const live=new Set(snapshot.vehicles.map(v=>v.id));for(const[id,model]of this.vehicles)if(!live.has(id)){this.carGroup.remove(model);this.vehicles.delete(id);}
     if(this.followId!==undefined&&this.followId!==null&&this.controls){const car=snapshot.vehicles.find(v=>v.id===this.followId);if(car){const dx=car.x-this.controls.target.x,dz=car.z-this.controls.target.z;this.camera.position.x+=dx;this.camera.position.z+=dz;this.controls.target.set(car.x,1,car.z);}else this.followId=null;}
     for(const car of snapshot.vehicles){let model=this.vehicles.get(car.id);if(!model){model=this.carModel(car.typeId);this.carGroup.add(model);this.vehicles.set(car.id,model);}model.position.set(car.x,.46,car.z);model.rotation.y=car.yaw;if(model.userData.queueHalo)model.userData.queueHalo.visible=car.speed<1&&snapshot.roadStats?.[car.laneId?.split(':')[0]]?.level==='congested';model.traverse(n=>{if(/^Wheel_/.test(n.name))n.rotation.x=car.distance/.36;if(/^Steer_/.test(n.name))n.rotation.y=car.steeringAngle||0;if(n.isMesh&&n.userData.dynamicLamp&&n.material.emissive){n.material.emissiveIntensity=car.braking?1.4:.12;if(/brake|tail/i.test(n.name))n.material.emissive.setHex(0xff3222);}});}
-    for(const head of this.phaseHeads){const phase=snapshot.conditions?.signalMode==='off'?'off':snapshot.signals[head.nodeId]?.[head.axis]||'red';head.object.traverse(n=>{if(!n.isMesh)return;for(const c of['red','amber','green'])if(n.name.includes(`lens_${c}`)){const on=(phase==='yellow'?'amber':phase)===c;n.material.color.setHex(on?({red:0xff3f25,amber:AMBER,green:GREEN}[c]):0x263039);n.material.emissive?.setHex(on?({red:0xff3f25,amber:AMBER,green:GREEN}[c]):0);n.material.emissiveIntensity=on?2:0;}});}
+    for(const head of this.phaseHeads){const phase=snapshot.conditions?.signalMode==='off'?'off':snapshot.signals[head.nodeId]?.[head.axis]||'red';head.object.traverse(n=>{if(!n.isMesh)return;for(const c of['red','amber','green'])if(n.name.includes(`lens_${c}`)){const on=(phase==='yellow'?'amber':phase)===c;n.material.color.setHex(on?SIGNAL_COLORS[c]:0x192129);}});}
     this.updateTraffic(snapshot.roadStats||{});this.details.update(snapshot,this.center);
   }
   updateTraffic(roads){
@@ -266,6 +542,19 @@ export class TrafficScene {
     const crowded=Object.values(roads).filter(r=>r.level==='congested'||r.level==='slow').sort((a,b)=>b.queuedVehicles-a.queuedVehicles||a.speedRatio-b.speedRatio).slice(0,this.width<600?2:4);const visible=new Set(crowded.map(r=>r.roadId));
     for(const[id,v]of this.roadVisuals){const r=roads[id],level=r?.level||'empty';if(v.level!==level||v.heatmap!==this.showHeatmap){v.level=level;v.heatmap=this.showHeatmap;v.surface.color.setHex(this.showHeatmap===false?ROAD:surfaces[level]);}
       v.badge.classList.toggle('hidden',!visible.has(id)||this.mode!=='run');v.badge.dataset.level=level;if(r)v.badge.textContent=`${r.label} · ${r.queuedVehicles?`排队 ${r.queuedVehicles} 辆`:r.meanSpeedKmh==null?'无车':`${r.meanSpeedKmh.toFixed(0)} km/h`}`;
+    }
+    for(const bend of this.bendVisuals||[]){
+      const levels=bend.roadIds.map(id=>roads[id]?.level||'empty'),key=`${levels.join(':')}:${this.showHeatmap}`;
+      if(bend.key===key)continue;bend.key=key;
+      const palette=levels.map(level=>new THREE.Color(this.showHeatmap===false?ROAD:surfaces[level]??ROAD)),[a,b]=palette,color=bend.mesh.geometry.getAttribute('color');
+      for(let i=0;i<color.count;i++){
+        if(bend.weights){
+          const c=new THREE.Color(0,0,0);palette.forEach((entry,j)=>{const w=bend.weights[i*palette.length+j];c.r+=entry.r*w;c.g+=entry.g*w;c.b+=entry.b*w;});color.setXYZ(i,c.r,c.g,c.b);continue;
+        }
+        const row=i<bend.rows?i:color.count-1-i,t=row/Math.max(1,bend.rows-1),c=a.clone().lerp(b,t);
+        color.setXYZ(i,c.r,c.g,c.b);
+      }
+      color.needsUpdate=true;
     }
   }
   setGarage(typeId){this.mode='garage';this.garageType=typeId;this.currentCamera=this.camera;this.setModeVisibility();if(this.garageCar)this.garageGroup.remove(this.garageCar);this.garageCar=this.carModel(typeId);this.garageCar.position.y=.2;this.garageGroup.add(this.garageCar);const t=VEHICLE_TYPES.find(v=>v.id===typeId),d=Math.max(7.8,t.length*1.2)*Math.max(1,1/(this.width/this.height));this.camera.position.set(d*.72,d*.36,d*.82);if(this.controls){this.controls.target.set(0,t.height*.8,0);this.controls.enabled=!this.fallback;this.controls.minDistance=5;this.controls.mouseButtons={LEFT:THREE.MOUSE.ROTATE,MIDDLE:THREE.MOUSE.PAN,RIGHT:THREE.MOUSE.ROTATE};this.controls.update();}}

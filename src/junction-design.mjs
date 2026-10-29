@@ -1,6 +1,6 @@
-import {roadPath,slicePath,pathPointAt} from './geometry.mjs';
-import {laneCounts,roadWidth} from './lanes.mjs';
-import {convexJunctionPolygon as localHull} from './junction-layout.mjs';
+import {roadPath,slicePath,pathPointAt,samplePath,sampleCubic,makePath} from './geometry.mjs';
+import {laneCounts,roadWidth,LANE_WIDTH} from './lanes.mjs';
+import {convexJunctionPolygon as localHull,junctionLayout} from './junction-layout.mjs';
 import {terminalIds} from './terminals.mjs';
 
 const EPS=1e-6;
@@ -85,90 +85,149 @@ function containedInOneRoad(polygon,roadPolygons,index){
 
 /** Local CCW pieces of the visual pavement union. No hull is taken across roads
  * or movements: gaps between branch corridors remain background, not asphalt. */
-export function cornerBends(network, curbMargin = 0) {
-  const bends = new Map();
-  for (const node of network.nodes) {
-    const attached = network.roads.filter(r => r.a === node.id || r.b === node.id);
-    if (attached.length !== 2) continue;
-    const [rA, rB] = attached;
-    const pathA = roadPath(network, rA), pathB = roadPath(network, rB);
-    
-    // 指向节点的切向量 u1
-    const isEndA = rA.b === node.id;
-    const pA = pathPointAt(pathA, isEndA ? pathA.length : 0);
-    const u1 = { x: pA.tangentX * (isEndA ? 1 : -1), z: pA.tangentZ * (isEndA ? 1 : -1) };
-    
-    // 背离节点的切向量 u2
-    const isStartB = rB.a === node.id;
-    const pB = pathPointAt(pathB, isStartB ? 0 : pathB.length);
-    const u2 = { x: pB.tangentX * (isStartB ? 1 : -1), z: pB.tangentZ * (isStartB ? 1 : -1) };
-    
-    const cross = u1.x * u2.z - u1.z * u2.x;
-    const dotVal = u1.x * u2.x + u1.z * u2.z;
-    if (Math.abs(cross) < 0.04 && dotVal > 0.95) continue;
-    
-    const wA = roadWidth(rA), wB = roadWidth(rB);
-    const hA = wA / 2 + curbMargin, hB = wB / 2 + curbMargin;
-    
-    const n1 = { x: -u1.z, z: u1.x };
-    const n2 = { x: -u2.z, z: u2.x };
-    
-    const outSign = cross > 0 ? -1 : 1;
-    const inSign = -outSign;
-    
-    const A1 = { x: node.x + hA * n1.x * outSign, z: node.z + hA * n1.z * outSign };
-    const A2 = { x: node.x + hB * n2.x * outSign, z: node.z + hB * n2.z * outSign };
-    const B1 = { x: node.x + hA * n1.x * inSign, z: node.z + hA * n1.z * inSign };
-    const B2 = { x: node.x + hB * n2.x * inSign, z: node.z + hB * n2.z * inSign };
-    
-    const t_out = ((A2.x - A1.x) * u2.z - (A2.z - A1.z) * u2.x) / cross;
-    const P_out = { x: A1.x + t_out * u1.x, z: A1.z + t_out * u1.z };
-    
-    const t_in = ((B2.x - B1.x) * u2.z - (B2.z - B1.z) * u2.x) / cross;
-    const P_in = { x: B1.x + t_in * u1.x, z: B1.z + t_in * u1.z };
-    
-    const angle = Math.atan2(Math.abs(cross), dotVal);
-    const tanHalf = Math.tan(Math.min(angle, Math.PI * 0.85) / 2);
-    
-    const maxTrimA = pathA.length * 0.35, maxTrimB = pathB.length * 0.35;
-    const L_out = Math.max(3.5, Math.min(14.0, Math.min(maxTrimA, maxTrimB, (hA + hB) * 0.7 * tanHalf)));
-    const L_in = Math.max(1.5, Math.min(7.0, L_out * 0.45));
-    
-    const T1_out = { x: P_out.x - L_out * u1.x, z: P_out.z - L_out * u1.z };
-    const T2_out = { x: P_out.x + L_out * u2.x, z: P_out.z + L_out * u2.z };
-    const T1_in = { x: P_in.x - L_in * u1.x, z: P_in.z - L_in * u1.z };
-    const T2_in = { x: P_in.x + L_in * u2.x, z: P_in.z + L_in * u2.z };
-    
-    const steps = 12;
-    const outerCurve = [], innerCurve = [], centerCurve = [];
-    for (let i = 0; i <= steps; i++) {
-      const t = i / steps, u = 1 - t;
-      const ox = u * u * T1_out.x + 2 * u * t * P_out.x + t * t * T2_out.x;
-      const oz = u * u * T1_out.z + 2 * u * t * P_out.z + t * t * T2_out.z;
-      const ix = u * u * T1_in.x + 2 * u * t * P_in.x + t * t * T2_in.x;
-      const iz = u * u * T1_in.z + 2 * u * t * P_in.z + t * t * T2_in.z;
-      outerCurve.push({ x: ox, z: oz });
-      innerCurve.push({ x: ix, z: iz });
-      centerCurve.push({ x: (ox + ix) / 2, z: (oz + iz) / 2 });
+function polygonContains(polygon,p){
+  let inside=false;
+  for(let i=0,j=polygon.length-1;i<polygon.length;j=i++){
+    const a=polygon[j],b=polygon[i],dx=b.x-a.x,dz=b.z-a.z,qx=p.x-a.x,qz=p.z-a.z;
+    if(dx*dx+dz*dz<1e-16)continue;
+    if(Math.abs(dx*qz-dz*qx)<1e-7&&qx*dx+qz*dz>=-1e-7&&qx*dx+qz*dz<=dx*dx+dz*dz+1e-7)return true;
+    if((a.z>p.z)!==(b.z>p.z)&&p.x<(b.x-a.x)*(p.z-a.z)/(b.z-a.z)+a.x)inside=!inside;
+  }return inside;
+}
+function selfIntersects(polygon){
+  const cross=(a,b,c)=>(b.x-a.x)*(c.z-a.z)-(b.z-a.z)*(c.x-a.x);
+  for(let i=0;i<polygon.length;i++)for(let j=i+2;j<polygon.length;j++){
+    if(i===0&&j===polygon.length-1)continue;
+    const a=polygon[i],b=polygon[(i+1)%polygon.length],c=polygon[j],d=polygon[(j+1)%polygon.length];
+    if(cross(a,b,c)*cross(a,b,d)<-1e-9&&cross(c,d,a)*cross(c,d,b)<-1e-9)return true;
+  }return false;
+}
+const bendCache=new WeakMap();
+export function cornerBends(network,curbMargin=0,connections=EMPTY_CONNECTIONS,{vehicleLength=10.923,vehicleWidth=3.0224,margin=.65}={}){
+  const cacheKey=`${vehicleLength}:${vehicleWidth}:${margin}`;
+  let cached=bendCache.get(network);
+  if(!cached||cached.connections!==connections){cached={connections,variants:new Map()};bendCache.set(network,cached);}
+  let base=cached.variants.get(cacheKey);
+  if(!base){
+    base=new Map();
+    for(const junction of junctionLayout(network).nodes){
+      if(junction.arms.length!==2)continue;
+      const layout=junctionLayout(network);
+      const visualArm=arm=>{const path=roadPath(network,arm.road),other=layout.byNode.get(arm.end==='a'?arm.road.b:arm.road.a).arms.find(a=>a.roadId===arm.roadId),otherNode=layout.byNode.get(arm.end==='a'?arm.road.b:arm.road.a),ports=new Set([...terminalIds(network,'source'),...terminalIds(network,'sink')]),reserve=otherNode.arms.length===1&&!arm.road.oneWay&&!ports.has(otherNode.nodeId)?Math.max(other.trim,Math.min(path.length*.45,vehicleLength+margin)):other.trim,collar=Math.min(vehicleLength+margin,Math.max(0,(path.length-arm.trim-reserve-4)*.45)),trim=arm.trim+collar,p=pathPointAt(path,arm.end==='a'?trim:path.length-trim),sign=arm.end==='a'?1:-1;return {...arm,engineTrim:arm.trim,trim,center:{x:p.x,z:p.z},outward:{x:p.tangentX*sign,z:p.tangentZ*sign}};};
+      const [a,b]=[...junction.arms].sort((a,b)=>a.roadId.localeCompare(b.roadId)).map(visualArm),da=directions(network,a),db=directions(network,b);
+      const traversable=!!(da.incoming&&db.outgoing||db.incoming&&da.outgoing);
+      const angle=Math.acos(Math.max(-1,Math.min(1,-dot(a.outward,b.outward)))),span=Math.hypot(b.center.x-a.center.x,b.center.z-a.center.z);
+      const factor=angle<.01?2/3:4/3*Math.tan(angle/4)/Math.max(.001,Math.tan(angle/2));
+      const k=Math.min(span*.8,(a.trim+b.trim)/2*factor),steps=Math.max(64,Math.min(256,Math.ceil((span+a.width+b.width)/.7)));
+      const centers=sampleCubic(a.center,{x:a.center.x-a.outward.x*k,z:a.center.z-a.outward.z*k},{x:b.center.x-b.outward.x*k,z:b.center.z-b.outward.z*k},b.center,steps);
+      const spine=makePath(centers),frames=centers.map((p,i)=>{const t=i/steps,blend=t*t*(3-2*t),v=i===0?{dx:-a.outward.x,dz:-a.outward.z}:i===steps?{dx:b.outward.x,dz:b.outward.z}:spine.tangents[i];return {...p,t,blend,nx:v.dz,nz:-v.dx,half:(a.width+(b.width-a.width)*blend)/2,bulge:Math.sin(Math.PI*t)**2};});
+      // The mouths and all connecting paint use this same frame. Fit one smooth
+      // widening profile to complete vehicle bodies, rather than drawing the
+      // jagged union of hundreds of independent swept rectangles.
+      const constraints=[];
+      for(const connection of connections)if(connection.nodeId===junction.nodeId&&!connection.uTurn){
+        for(let i=1;i<connection.points.length;i++){
+          const p=connection.points[i-1],q=connection.points[i],dy=Math.atan2(Math.sin(q.yaw-p.yaw),Math.cos(q.yaw-p.yaw));
+          for(let j=0;j<=4;j++){const t=j/4;constraints.push(...vehicleFootprint({x:p.x+(q.x-p.x)*t,z:p.z+(q.z-p.z)*t,yaw:p.yaw+dy*t},vehicleLength,vehicleWidth,margin+.04));}
+        }
+      }
+      const roadPolygons=[];
+      for(const arm of [a,b]){const path=roadPath(network,arm.road),half=arm.width/2,trimAt=id=>id===junction.nodeId?arm.trim:layout.byNode.get(id).arms.find(a=>a.roadId===arm.roadId).trim,samples=samplePath(path,trimAt(arm.road.a),path.length-trimAt(arm.road.b),1.5);for(let i=1;i<samples.length;i++)roadPolygons.push(localHull([pathPointAt(path,samples[i-1].s,-half),pathPointAt(path,samples[i-1].s,half),pathPointAt(path,samples[i].s,-half),pathPointAt(path,samples[i].s,half)]));}
+      const roadIndex=coverageIndex(roadPolygons),seenTargets=new Set();
+      const targets=constraints.filter(p=>{const key=`${p.x.toFixed(3)}:${p.z.toFixed(3)}`;if(seenTargets.has(key))return false;seenTargets.add(key);const candidates=roadIndex.cells.get(`${Math.floor(p.x/roadIndex.size)}:${Math.floor(p.z/roadIndex.size)}`)||[];return !candidates.some(i=>convexContains(roadPolygons[i],p));});
+      let right=0,left=0;
+      for(const p of targets){let best=null;for(let i=1;i<frames.length;i++){const a=frames[i-1],b=frames[i],dx=b.x-a.x,dz=b.z-a.z,ratio=Math.max(0,Math.min(1,((p.x-a.x)*dx+(p.z-a.z)*dz)/(dx*dx+dz*dz||1))),x=a.x+dx*ratio,z=a.z+dz*ratio,distance=(p.x-x)**2+(p.z-z)**2;if(!best||distance<best.distance)best={i,ratio,x,z,distance};}const a=frames[best.i-1],b=frames[best.i],t=a.t+(b.t-a.t)*best.ratio,nx=a.nx+(b.nx-a.nx)*best.ratio,nz=a.nz+(b.nz-a.nz)*best.ratio,offset=(p.x-best.x)*nx+(p.z-best.z)*nz,half=a.half+(b.half-a.half)*best.ratio,amplitude=Math.max(0,(Math.abs(offset)-half+.08)/Math.max(.002,Math.sin(Math.PI*t)**2));if(offset>0)right=Math.max(right,amplitude);else left=Math.max(left,amplitude);}
+      const maximumBulge=Math.max(a.width,b.width)+vehicleLength;right=Math.min(right,maximumBulge);left=Math.min(left,maximumBulge);
+      const side=(sign,extra=0)=>frames.map(p=>({x:p.x+p.nx*sign*(p.half+(sign>0?right:left)*p.bulge+extra),z:p.z+p.nz*sign*(p.half+(sign>0?right:left)*p.bulge+extra)}));
+      let surfaceOuter=side(1),surfaceInner=side(-1);
+      for(let attempt=0;attempt<12;attempt++){const polygon=[...surfaceOuter,...surfaceInner.slice().reverse()];if(targets.every(p=>polygonContains(polygon,p)))break;right=Math.min(maximumBulge,(right+.1)*1.15);left=Math.min(maximumBulge,(left+.1)*1.15);surfaceOuter=side(1);surfaceInner=side(-1);}
+      const offsetBoundary=(points,distance,sign)=>{const path=makePath(points);return points.map((p,i)=>{const v=i===0?{dx:-a.outward.x,dz:-a.outward.z}:i===points.length-1?{dx:b.outward.x,dz:b.outward.z}:path.tangents[i];return{x:p.x+v.dz*distance*sign,z:p.z-v.dx*distance*sign};});};
+      const countsA=laneCounts(a.road),countsB=laneCounts(b.road),markings=[];
+      const divider=(arm,counts)=>(counts.backward-counts.total/2)*LANE_WIDTH*(arm.end==='a'?1:-1);
+      const link=(oa,ob)=>{
+        const engineArm=arm=>junction.arms.find(x=>x.roadId===arm.roadId),ea=engineArm(a),eb=engineArm(b);
+        const roadSection=(arm,offset,incoming)=>{const path=roadPath(network,arm.road),engine=engineArm(arm).trim,at=t=>arm.end==='a'?t:path.length-t,first=at(incoming?arm.trim:engine),last=at(incoming?engine:arm.trim),canonicalOffset=offset*(arm.end==='a'?1:-1),points=samplePath(path,Math.min(first,last),Math.max(first,last),1,canonicalOffset);return first>last?points.reverse():points;};
+        const before=roadSection(a,oa,true),after=roadSection(b,ob,false),p=before.at(-1),q=after[0],inDir={x:-ea.outward.x,z:-ea.outward.z},outDir=eb.outward,dotValue=dot(inDir,outDir),delta={x:q.x-p.x,z:q.z-p.z},available=Math.max(.25,Math.min(dot(delta,inDir),dot(delta,outDir))),base=Math.min(ea.trim,eb.trim),handle=dotValue<-.9?base*2:dotValue<.7?Math.min(base*.85,available*.55228475):base*.85;
+        const middle=sampleCubic(p,{x:p.x+inDir.x*handle,z:p.z+inDir.z*handle},{x:q.x-outDir.x*handle,z:q.z-outDir.z*handle},q,48);
+        return [...before,...middle.slice(1),...after.slice(1)];
+      };
+      let centerCurve=null;
+      if(traversable&&!a.road.oneWay&&!b.road.oneWay){centerCurve=link(divider(a,countsA),divider(b,countsB));markings.push({points:centerCurve,divider:true});}
+      for(const [fromCount,toCount,side] of [[da.incoming,db.outgoing,-1],[da.outgoing,db.incoming,1]]){if(!traversable||fromCount!==toCount)continue;for(let i=1;i<fromCount;i++)markings.push({points:link(divider(a,countsA)+side*i*LANE_WIDTH,divider(b,countsB)-side*i*LANE_WIDTH),divider:false});}
+      const rawPolygon=[...surfaceOuter,...surfaceInner.slice().reverse()],smoothGeometry=!selfIntersects(rawPolygon);
+      const coverageComplete=smoothGeometry&&targets.every(p=>polygonContains(rawPolygon,p));
+      const fallbackPolygon=smoothGeometry?null:localHull(rawPolygon);
+      if(!smoothGeometry){surfaceOuter=[];surfaceInner=[];markings.length=0;centerCurve=null;}
+      // Render trims include the shared vehicle-overhang collar; engine mouths
+      // remain the junctionLayout trims used by simulation connectors.
+      base.set(junction.nodeId,{nodeId:junction.nodeId,roadA:a.road,roadB:b.road,trimA:a.trim,trimB:b.trim,renderTrimA:a.trim,renderTrimB:b.trim,coverageComplete,smoothGeometry,fallbackPolygon,surfaceOuter,surfaceInner,outerCurve:smoothGeometry?offsetBoundary(surfaceOuter,-.45,1):[],innerCurve:smoothGeometry?offsetBoundary(surfaceInner,-.45,-1):[],centerCurve,markings,divider:!!centerCurve,offsetBoundary});
     }
-    
-    const polygon = [...outerCurve, ...innerCurve.slice().reverse()];
-    bends.set(node.id, {
-      nodeId: node.id,
-      roadA: rA,
-      roadB: rB,
-      trimA: L_out,
-      trimB: L_out,
-      polygon,
-      outerCurve,
-      innerCurve,
-      centerCurve,
-      divider: !rA.oneWay && !rB.oneWay
-    });
+    cached.variants.set(cacheKey,base);
   }
-  return bends;
+  const bends=new Map();for(const [id,bend] of base){const surfaceOuter=curbMargin&&bend.surfaceOuter.length?bend.offsetBoundary(bend.surfaceOuter,curbMargin,1):bend.surfaceOuter,surfaceInner=curbMargin&&bend.surfaceInner.length?bend.offsetBoundary(bend.surfaceInner,curbMargin,-1):bend.surfaceInner;
+    let fallbackPolygon=bend.fallbackPolygon;if(fallbackPolygon&&curbMargin){const p=makePath([...fallbackPolygon,fallbackPolygon[0]]);fallbackPolygon=fallbackPolygon.map((q,i)=>({x:q.x+p.tangents[i].dz*curbMargin,z:q.z-p.tangents[i].dx*curbMargin}));}
+    bends.set(id,{...bend,surfaceOuter,surfaceInner,fallbackPolygon,polygon:fallbackPolygon||[...surfaceOuter,...surfaceInner.slice().reverse()]});}return bends;
 }
 
+const junctionSurfaceCache=new WeakMap();
+/** A single concave, tangent-continuous outline for each multi-arm junction.
+ * Corner geometry depends on physical mouths, never legal lane movements. */
+export function junctionSurfaces(network,connections=EMPTY_CONNECTIONS,{vehicleLength=10.923,vehicleWidth=3.0224,margin=.65}={}){
+  const key=`${vehicleLength}:${vehicleWidth}:${margin}`;
+  let cached=junctionSurfaceCache.get(network);
+  if(!cached||cached.connections!==connections){cached={connections,variants:new Map()};junctionSurfaceCache.set(network,cached);}
+  if(cached.variants.has(key))return cached.variants.get(key);
+  const surfaces=new Map(),layout=junctionLayout(network);
+  for(const junction of layout.nodes){
+    if(junction.arms.length<3)continue;
+    const mouths=[...junction.arms].map(arm=>{
+      const path=roadPath(network,arm.road),otherNode=layout.byNode.get(arm.end==='a'?arm.road.b:arm.road.a),other=otherNode.arms.find(a=>a.roadId===arm.roadId),ports=new Set([...terminalIds(network,'source'),...terminalIds(network,'sink')]),reserve=otherNode.arms.length===1&&!arm.road.oneWay&&!ports.has(otherNode.nodeId)?Math.max(other.trim,Math.min(path.length*.45,vehicleLength+margin)):other.trim,collar=Math.min(vehicleLength+margin,Math.max(0,(path.length-arm.trim-reserve-4)*.45)),trim=arm.trim+collar,p=pathPointAt(path,arm.end==='a'?trim:path.length-trim),sign=arm.end==='a'?1:-1,outward={x:p.tangentX*sign,z:p.tangentZ*sign},normal={x:-outward.z,z:outward.x};
+      return {...arm,engineTrim:arm.trim,renderTrim:trim,trim,center:{x:p.x,z:p.z},outward,left:{x:p.x+normal.x*arm.width/2,z:p.z+normal.z*arm.width/2},right:{x:p.x-normal.x*arm.width/2,z:p.z-normal.z*arm.width/2}};
+    }).sort((a,b)=>Math.atan2(a.outward.z,a.outward.x)-Math.atan2(b.outward.z,b.outward.x)||a.roadId.localeCompare(b.roadId));
+    const side=(arm,offset)=>({x:arm.center.x-arm.outward.z*offset,z:arm.center.z+arm.outward.x*offset});
+    const cornerSpecs=mouths.map((arm,i)=>{
+      const next=mouths[(i+1)%mouths.length],p=side(arm,arm.width/2),q=side(next,-next.width/2),den=arm.outward.x*next.outward.z-arm.outward.z*next.outward.x,dx=q.x-p.x,dz=q.z-p.z;
+      let gap=Math.atan2(next.outward.z,next.outward.x)-Math.atan2(arm.outward.z,arm.outward.x);if(gap<=0)gap+=Math.PI*2;
+      const turn=Math.abs(Math.PI-gap),factor=turn<.01?2/3:4/3*Math.tan(turn/4)/Math.max(.001,Math.tan(turn/2));
+      const ta=Math.abs(den)>.001?(-dx*next.outward.z+dz*next.outward.x)/den:Math.hypot(dx,dz)/2;
+      const tb=Math.abs(den)>.001?(arm.outward.x*dz-arm.outward.z*dx)/den:Math.hypot(dx,dz)/2;
+      const span=Math.hypot(dx,dz),ka=Math.min(span*.8,Math.max(.1,ta*factor)),kb=Math.min(span*.8,Math.max(.1,tb*factor));
+      return {arm,next,p,q,ka,kb,steps:Math.max(40,Math.min(128,Math.ceil(span/.6)))};
+    });
+    const coverage=[];
+    for(const arm of mouths){const path=roadPath(network,arm.road),other=layout.byNode.get(arm.end==='a'?arm.road.b:arm.road.a).arms.find(a=>a.roadId===arm.roadId),start=arm.end==='a'?arm.trim:other.trim,end=path.length-(arm.end==='b'?arm.trim:other.trim),samples=samplePath(path,start,end,3);for(let i=1;i<samples.length;i++)coverage.push(localHull([pathPointAt(path,samples[i-1].s,-arm.width/2),pathPointAt(path,samples[i-1].s,arm.width/2),pathPointAt(path,samples[i].s,-arm.width/2),pathPointAt(path,samples[i].s,arm.width/2)]));}
+    const index=coverageIndex(coverage),targets=[],clearanceTargets=[],seen=new Set();
+    for(const connection of connections)if(connection.nodeId===junction.nodeId)for(let i=1;i<connection.points.length;i++){
+      const a=connection.points[i-1],b=connection.points[i],dy=Math.atan2(Math.sin(b.yaw-a.yaw),Math.cos(b.yaw-a.yaw));
+      for(let j=0;j<=4;j++){const t=j/4,pose={x:a.x+(b.x-a.x)*t,z:a.z+(b.z-a.z)*t,yaw:a.yaw+dy*t};for(const [clearance,list,prefix] of [[.02,targets,'body'],[margin,clearanceTargets,'clearance']])for(const p of vehicleFootprint(pose,vehicleLength,vehicleWidth,clearance)){const id=`${prefix}:${p.x.toFixed(2)}:${p.z.toFixed(2)}`;if(seen.has(id))continue;seen.add(id);const candidates=index.cells.get(`${Math.floor(p.x/index.size)}:${Math.floor(p.z/index.size)}`)||[];if(!candidates.some(i=>convexContains(coverage[i],p)))list.push(p);}}
+    }
+    const curvesAt=roundness=>cornerSpecs.map(({arm,next,p,q,ka,kb,steps})=>{
+      let p1={x:p.x-arm.outward.x*ka*roundness,z:p.z-arm.outward.z*ka*roundness},p2={x:q.x-next.outward.x*kb*roundness,z:q.z-next.outward.z*kb*roundness};
+      const axisAligned=v=>Math.abs(v.x)<1e-8||Math.abs(v.z)<1e-8;
+      if(axisAligned(arm.outward)&&axisAligned(next.outward)){
+        const clamp=c=>({x:Math.max(Math.min(p.x,q.x),Math.min(Math.max(p.x,q.x),c.x)),z:Math.max(Math.min(p.z,q.z),Math.min(Math.max(p.z,q.z),c.z))});p1=clamp(p1);p2=clamp(p2);
+      }
+      return sampleCubic(p,p1,p2,q,steps);
+    });
+    const cleanPolygon=points=>{const clean=points.filter((p,i)=>!i||Math.hypot(p.x-points[i-1].x,p.z-points[i-1].z)>1e-8);if(clean.length>1&&Math.hypot(clean[0].x-clean.at(-1).x,clean[0].z-clean.at(-1).z)<1e-8)clean.pop();return clean;};
+    const polygonFrom=curves=>cleanPolygon(curves.flatMap((curve,i)=>[side(mouths[i],-mouths[i].width/2),...curve]));
+    let curves=curvesAt(1),polygon=polygonFrom(curves),roundness=1;
+    // A bounded handle adjustment can open a corner toward its chamfer. Never
+    // displace the corner along its normal: that produces protruding ears.
+    if(!targets.every(p=>polygonContains(polygon,p))){
+      const limit=polygonFrom(curvesAt(.05));
+      if(targets.every(p=>polygonContains(limit,p)))for(let attempt=0;attempt<14&&!targets.every(p=>polygonContains(polygon,p));attempt++){roundness*=.8;curves=curvesAt(roundness);polygon=polygonFrom(curves);}
+    }
+    let smoothGeometry=!selfIntersects(polygon),coverageComplete=smoothGeometry&&targets.every(p=>polygonContains(polygon,p));
+    const clearanceComplete=smoothGeometry&&clearanceTargets.every(p=>polygonContains(polygon,p));
+    if(!smoothGeometry){polygon=localHull(mouths.flatMap(a=>[a.left,a.right]));curves=[];coverageComplete=false;}
+    const offsetCurve=(points,distance,spec)=>{const path=makePath(points);return points.map((p,i)=>{const v=i===0?{dx:-spec.arm.outward.x,dz:-spec.arm.outward.z}:i===points.length-1?{dx:spec.next.outward.x,dz:spec.next.outward.z}:path.tangents[i];return{x:p.x+v.dz*distance,z:p.z-v.dx*distance};});};
+    const curbCurves=curves.map((curve,i)=>offsetCurve(curve,1.35,cornerSpecs[i])),edgeCurves=curves.map((curve,i)=>offsetCurve(curve,-.45,cornerSpecs[i]));
+    const curbPolygon=curbCurves.length?cleanPolygon(curbCurves.flatMap((curve,i)=>[side(mouths[i],-mouths[i].width/2-1.35),...curve])):localHull(mouths.flatMap(a=>[side(a,-a.width/2-1.35),side(a,a.width/2+1.35)]));
+    surfaces.set(junction.nodeId,{nodeId:junction.nodeId,polygon,curbPolygon,edgeCurves,mouths,coverageComplete,clearanceComplete,smoothGeometry,roundness,bulge:0});
+  }
+  cached.variants.set(key,surfaces);return surfaces;
+}
 
 export function pavementFootprints(network,connections=EMPTY_CONNECTIONS,{vehicleLength=10.923,vehicleWidth=3.0224,margin=.65,curbMargin=0}={}){
   if(!finite(vehicleLength)||vehicleLength<=0||!finite(vehicleWidth)||vehicleWidth<=0||!finite(margin)||margin<0||!finite(curbMargin)||curbMargin<0)throw new Error('路面扫掠尺寸必须为有效非负数，车辆尺寸应大于零');
@@ -178,24 +237,24 @@ export function pavementFootprints(network,connections=EMPTY_CONNECTIONS,{vehicl
   if(cached.variants.has(key))return cached.variants.get(key);
   const roadPieces=[];
   const addRoad=(points,width)=>{const polygon=localHull(points);if(polygon.length>=3)roadPieces.push({polygon,width});};
-  const bends = cornerBends(network, curbMargin);
+  const bends = cornerBends(network,curbMargin,connections,{vehicleLength,vehicleWidth,margin});
+  const junctions=junctionSurfaces(network,connections,{vehicleLength,vehicleWidth,margin});
   for(const road of network.roads){
     const path=roadPath(network,road),half=roadWidth(road)/2+curbMargin;
-    const bendA = bends.get(road.a), bendB = bends.get(road.b);
-    const trimA = bendA ? (bendA.roadA.id === road.id ? bendA.trimA : bendA.trimB) : 0;
-    const trimB = bendB ? (bendB.roadA.id === road.id ? bendB.trimA : bendB.trimB) : 0;
-    const startOffset = Math.min(path.length * 0.4, trimA);
-    const endOffset = Math.max(startOffset + 0.1, path.length - Math.min(path.length * 0.4, trimB));
-    
-    const steps = Math.max(1, Math.ceil((endOffset - startOffset) / 15));
-    for(let i=0; i<steps; i++){
-      const s0 = startOffset + (endOffset - startOffset) * i / steps;
-      const s1 = startOffset + (endOffset - startOffset) * (i + 1) / steps;
+    const a=junctionLayout(network).byNode.get(road.a),b=junctionLayout(network).byNode.get(road.b);
+    const bendA=bends.get(road.a),bendB=bends.get(road.b),bendTrim=bend=>bend.roadA.id===road.id?bend.trimA:bend.trimB;
+    const junctionA=junctions.get(road.a)?.mouths.find(arm=>arm.roadId===road.id),junctionB=junctions.get(road.b)?.mouths.find(arm=>arm.roadId===road.id);
+    const start=bendA?bendTrim(bendA):junctionA?junctionA.trim:a.arms.length>1?a.arms.find(arm=>arm.roadId===road.id).trim:0;
+    const end=path.length-(bendB?bendTrim(bendB):junctionB?junctionB.trim:b.arms.length>1?b.arms.find(arm=>arm.roadId===road.id).trim:0);
+    const samples=samplePath(path,start,end,3);
+    for(let i=1;i<samples.length;i++){
+      const s0=samples[i-1].s,s1=samples[i].s;
       addRoad([pathPointAt(path,s0,-half),pathPointAt(path,s0,half),pathPointAt(path,s1,-half),pathPointAt(path,s1,half)],half*2);
     }
   }
-  for (const bend of bends.values()) {
-    addRoad(bend.polygon, roadWidth(bend.roadA));
+  for(const bend of bends.values()){if(bend.fallbackPolygon)addRoad(bend.fallbackPolygon,Math.max(roadWidth(bend.roadA),roadWidth(bend.roadB)));}
+  for(const bend of bends.values())for(let i=1;i<bend.surfaceOuter.length;i++){
+    addRoad([bend.surfaceOuter[i-1],bend.surfaceOuter[i],bend.surfaceInner[i],bend.surfaceInner[i-1]],Math.max(roadWidth(bend.roadA),roadWidth(bend.roadB)));
   }
   // Open terminal gates need enough straight pavement for a complete vehicle to
   // emerge or clear the exit before its rear crosses the logical boundary.
@@ -209,6 +268,7 @@ export function pavementFootprints(network,connections=EMPTY_CONNECTIONS,{vehicl
   const roadPolygons=mergeRoadQuads(roadPieces),roadIndex=coverageIndex(roadPolygons),polygons=[...roadPolygons],seen=new Set(polygons.map(polygonKey));
   const add=points=>{const polygon=localHull(points);if(polygon.length<3||containedInOneRoad(polygon,roadPolygons,roadIndex))return;const key=polygonKey(polygon);if(seen.has(key))return;seen.add(key);polygons.push(polygon);};
   for(const connection of connections){
+    if(junctions.get(connection.nodeId)?.coverageComplete||bends.get(connection.nodeId)?.coverageComplete&&!connection.uTurn)continue;
     const poses=connection.points||connection.poses||[];
     if(!poses.length)continue;
     const laneW=connection.laneWidth||vehicleWidth;
@@ -224,8 +284,17 @@ export function pavementFootprints(network,connections=EMPTY_CONNECTIONS,{vehicl
         {x:p1.x+n1.x*halfWidth,z:p1.z+n1.z*halfWidth},
         {x:p1.x-n1.x*halfWidth,z:p1.z-n1.z*halfWidth}
       ]);
+      // Include the complete turning body. A centreline ribbon alone omits bus
+      // overhang at tight turns and can place visible wheels outside the curb.
+      const sweep=[],dy=Math.atan2(Math.sin(p1.yaw-p0.yaw),Math.cos(p1.yaw-p0.yaw));
+      for(let j=0;j<=4;j++){
+        const t=j/4,pose={x:p0.x+(p1.x-p0.x)*t,z:p0.z+(p1.z-p0.z)*t,yaw:p0.yaw+dy*t};
+        sweep.push(...vehicleFootprint(pose,vehicleLength,vehicleWidth,margin+curbMargin+.02));
+      }
+      add(sweep);
     }
   }
+  for(const junction of junctions.values())polygons.push(curbMargin?junction.curbPolygon:junction.polygon);
   cached.variants.set(key,polygons);return polygons;
 }
 
