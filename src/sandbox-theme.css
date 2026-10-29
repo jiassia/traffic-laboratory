@@ -2744,3 +2744,481 @@ select:focus-visible {
   background: rgba(15, 23, 42, 0.08);
   margin: 4px 0;
 }
+
+
+/* ==========================================================================
+   堵车实验室 · 现代化极简浅色首页设计系统 (精准适配 750x562 / 830x622 / 390x844)
+   ========================================================================== */
+
+.home-container {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  opacity: 1;
+}
+
+.home-container.hidden {
+  display: none !important;
+}
+
+/* 首页统一矢量线条图标体系 */
+.home-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  line-height: 1;
+  flex-shrink: 0;
+  color: inherit;
+}
+
+.home-icon svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* 首页独立精致顶栏：仅保留品牌，无冗余动作按钮，高度紧凑 */
+.home-topbar {
+  height: 50px;
+  min-height: 50px;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  z-index: 10;
+  flex-wrap: nowrap;
+}
+
+.home-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.home-brand-logo {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: var(--primary-soft);
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--primary-border);
+  flex-shrink: 0;
+}
+
+.home-brand-logo img {
+  width: 18px;
+  height: 18px;
+}
+
+.home-brand-title {
+  font-size: 15.5px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+/* ==========================================================================
+   首页主展示区：750x562 / 830x622 / 1440x900 桌面首屏完整无滚动
+   ========================================================================== */
+
+.home-main-view {
+  flex: 1 1 auto;
+  height: calc(100% - 50px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 24px;
+  overflow: hidden;
+}
+
+.home-content-wrap {
+  width: 100%;
+  max-width: 860px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) minmax(300px, 1.15fr);
+  gap: clamp(20px, 3.5vw, 40px);
+  align-items: center;
+}
+
+.home-hero-text {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(14px, 2.5vh, 22px);
+}
+
+.home-hero-title {
+  margin: 0;
+  font-size: clamp(24px, 3.2vw, 36px);
+  font-weight: 750;
+  line-height: 1.2;
+  letter-spacing: -0.03em;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+/* 核心行动入口按钮组 */
+.home-cta-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  max-width: 300px;
+}
+
+.home-cta-btn {
+  width: 100%;
+  height: 44px;
+  padding: 0 16px;
+  border-radius: 11px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: var(--shadow-xs);
+  position: relative;
+  border: 1px solid var(--line);
+}
+
+.home-cta-label {
+  flex: 1 1 auto;
+  text-align: left;
+}
+
+.home-cta-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.home-cta-icon .home-icon {
+  width: 17px;
+  height: 17px;
+}
+
+.home-cta-arrow {
+  color: currentColor;
+  opacity: 0.6;
+  transition: transform 0.18s ease, opacity 0.18s ease;
+  display: inline-flex;
+}
+
+.home-cta-arrow .home-icon {
+  width: 15px;
+  height: 15px;
+}
+
+.home-cta-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.home-cta-btn:hover .home-cta-arrow {
+  transform: translateX(3px);
+  opacity: 1;
+}
+
+.home-cta-btn.primary {
+  background: linear-gradient(135deg, #0f766e 0%, #115e59 100%) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  box-shadow: 0 3px 12px rgba(15, 118, 110, 0.24) !important;
+}
+
+.home-cta-btn.primary .home-cta-icon {
+  background: rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+}
+
+.home-cta-btn.secondary {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  color: var(--text);
+}
+
+.home-cta-btn.secondary .home-cta-icon {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+.home-cta-btn.secondary:hover {
+  border-color: rgba(15, 23, 42, 0.18);
+}
+
+.home-cta-btn.secondary.highlight {
+  border-color: rgba(15, 118, 110, 0.35);
+  background: linear-gradient(to right, #ffffff, #f0fdfa);
+}
+
+.home-cta-btn.secondary.highlight:hover {
+  border-color: var(--primary);
+}
+
+/* 主视觉卡片：纯净抽象路网几何图形 */
+.home-hero-visual {
+  display: flex;
+  justify-content: center;
+}
+
+.home-visual-card {
+  width: 100%;
+  max-width: 420px;
+  background: #ffffff;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+  padding: 10px;
+}
+
+.home-hero-diagram {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+/* ==========================================================================
+   单独简洁模板选择层 (允许内部平滑滚动)
+   ========================================================================== */
+
+.home-templates-view {
+  position: absolute;
+  inset: 0;
+  z-index: 60;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+}
+
+.home-templates-view.hidden {
+  display: none !important;
+}
+
+.home-templates-container {
+  max-width: 860px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 24px 20px 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.home-templates-topbar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.home-back-btn {
+  height: 36px;
+  padding: 0 12px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13.5px;
+  font-weight: 550;
+  background: #ffffff;
+  border: 1px solid var(--line);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.home-back-btn .home-icon {
+  width: 15px;
+  height: 15px;
+}
+
+.home-back-btn:hover {
+  background: var(--card-hover);
+  color: var(--primary);
+  border-color: rgba(15, 118, 110, 0.3);
+}
+
+.home-templates-heading {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.02em;
+}
+
+.home-simple-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.home-simple-card {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: var(--shadow-xs);
+  text-align: left;
+}
+
+.home-simple-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.home-simple-card:active {
+  transform: scale(0.985);
+}
+
+.home-simple-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.home-simple-arrow {
+  color: var(--primary);
+  opacity: 0.55;
+  transition: transform 0.18s ease, opacity 0.18s ease;
+  display: inline-flex;
+}
+
+.home-simple-arrow .home-icon {
+  width: 14px;
+  height: 14px;
+}
+
+.home-simple-card:hover .home-simple-arrow {
+  transform: translateX(3px);
+  opacity: 1;
+}
+
+/* ==========================================================================
+   编辑器内“返回首页”导航按钮与顶栏微调
+   ========================================================================== */
+
+.nav-home-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  border: 1px solid var(--line);
+  background: #ffffff;
+  padding: 6px 13px;
+  border-radius: 9px;
+  margin-right: 6px;
+}
+
+.nav-home-btn:hover {
+  background: var(--card-hover);
+  color: var(--primary);
+  border-color: rgba(15, 118, 110, 0.3);
+}
+
+/* ==========================================================================
+   移动端与 390x844 响应式适配
+   ========================================================================== */
+
+@media (max-width: 600px) {
+  .home-main-view {
+    height: auto;
+    overflow-y: auto;
+    padding: 20px 16px 36px;
+    align-items: flex-start;
+  }
+
+  .home-content-wrap {
+    grid-template-columns: 1fr;
+    gap: 24px;
+    max-width: 380px;
+  }
+
+  .home-hero-title {
+    font-size: 24px;
+    white-space: normal;
+  }
+
+  .home-cta-group {
+    max-width: 100%;
+  }
+
+  .home-visual-card {
+    max-width: 380px;
+  }
+
+  .home-simple-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 390px) {
+  .home-topbar {
+    padding: 0 14px;
+    height: 48px;
+    min-height: 48px;
+  }
+
+  .home-brand-logo {
+    width: 26px;
+    height: 26px;
+  }
+
+  .home-brand-title {
+    font-size: 14.5px;
+  }
+
+  .home-main-view {
+    padding: 16px 14px 32px;
+  }
+
+  .home-hero-title {
+    font-size: 22px;
+  }
+
+  .home-cta-btn {
+    height: 42px;
+    padding: 0 14px;
+    font-size: 14px;
+  }
+
+  .home-cta-icon {
+    width: 26px;
+    height: 26px;
+  }
+}

@@ -27,6 +27,14 @@ export function createTrafficEngine(inputNetwork,inputSettings,ctx){
   const lanes=new Map();
   const laneFor=(road,from,index=0)=>{const key=laneKey(road,from,index);if(!lanes.has(key))lanes.set(key,makeLane(network,road,from,index));return lanes.get(key);};
   let occupancyCache=null;
+  // A road's condition is measured in simulation time, independent of snapshot/render frequency.
+  // These are teaching-display thresholds, not locally calibrated traffic engineering limits.
+  const trafficHistory=new Map(),roadConditions=new Map();
+  const roadLanes=new Map(network.roads.map(road=>{const count=laneCounts(road);return [road.id,[
+    ...Array.from({length:count.forward},(_,i)=>laneFor(road,road.a,i)),
+    ...Array.from({length:count.backward},(_,i)=>laneFor(road,road.b,i)),
+  ]];}));
+  const smooth=(low,high,value)=>{const t=clamp((value-low)/(high-low),0,1);return t*t*(3-2*t);};
   const counts={requested:0,arrived:0,removed:0,breakdowns:0,violations:0,safetyCorrections:0,totalTravel:0,collisions:0,clearedIncidents:0};
   const log=(type,data={})=>{events.push({tick,time:tick*FIXED_STEP,type,...data});};
   const request=()=>{const sourceId=sourceIds[counts.requested%sourceIds.length],targets=[...routes.get(sourceId).keys()],targetSinkId=targets[sourceCounts[sourceId].requested%targets.length];queue.push({id:nextId++,requestedAt:tick*FIXED_STEP,sourceId,targetSinkId});sourceCounts[sourceId].requested++;sinkCounts[targetSinkId].requested++;counts.requested++;};
@@ -40,8 +48,18 @@ export function createTrafficEngine(inputNetwork,inputSettings,ctx){
   if(settings.demand>0){request();log('initial-demand',{count:1});}
 
   function choicesAt(id){return network.roads.flatMap(r=>r.a===id?[{road:r,from:r.a,to:r.b}]:r.b===id&&!r.oneWay?[{road:r,from:r.b,to:r.a}]:[]).sort((a,b)=>a.road.id.localeCompare(b.road.id));}
-  function unknownPlan(car,at){
-    const choices=choicesAt(at);if(!choices.length)return null;
+  function movementAllowed(incoming,outgoing){
+    if(!incoming)return true;
+    const forward=incoming.from===incoming.road.a,count=forward?laneCounts(incoming.road).forward:laneCounts(incoming.road).backward;
+    const indices=Number.isInteger(incoming.index)?[incoming.index]:Array.from({length:count},(_,index)=>index);
+    return indices.some(index=>laneAllowsMovement(network,incoming.road,forward,index,outgoing.road,outgoing.from===outgoing.road.a));
+  }
+  function unknownPlan(car,at,incoming=car.lane?.to===at?car.lane:null){
+    // Exploration remembers visited streets, but must still obey the same turn
+    // permissions as the selected lane. A remembered parent is not permission
+    // to reverse through an ordinary bend or intersection.
+    const choices=choicesAt(at).filter(edge=>movementAllowed(incoming,edge)).filter(edge=>sinkSet.has(edge.to)||choicesAt(edge.to).some(next=>movementAllowed(edge,next)));
+    if(!choices.length)return null;
     const memoryStack=[...car.memoryStack],visitedNodes=new Set(car.visitedNodes),visited=new Set(car.visited);
     const index=memoryStack.indexOf(at);if(index>=0)memoryStack.length=index+1;else memoryStack.push(at);visitedNodes.add(at);
     let available=choices.filter(edge=>!visitedNodes.has(edge.to));
@@ -55,7 +73,7 @@ export function createTrafficEngine(inputNetwork,inputSettings,ctx){
       if(lane){car.routeIndex++;car.selectedNextEdge=next;car.blockedReason=null;}else car.blockedReason='no-compatible-turn-lane';return lane;
     }
     const plan=car.nextPlan?.at===at?car.nextPlan:unknownPlan(car,at);if(!plan)return null;
-    const nextPlan=unknownPlan({...car,...plan},plan.edge.to),lane=selectLane(plan.edge.road,plan.edge.from,car,nextPlan?.edge);
+    const nextPlan=unknownPlan({...car,...plan},plan.edge.to,plan.edge),lane=selectLane(plan.edge.road,plan.edge.from,car,nextPlan?.edge);
     if(!lane){car.blockedReason='no-compatible-turn-lane';return null;}
     car.memoryStack=plan.memoryStack;car.visitedNodes=plan.visitedNodes;car.visited=plan.visited;car.decisions=plan.decisions;car.nextPlan=nextPlan;car.selectedNextEdge=nextPlan?.edge;car.blockedReason=null;return lane;
   }
@@ -246,17 +264,80 @@ export function createTrafficEngine(inputNetwork,inputSettings,ctx){
       if(!car.turn)for(const held of[...car.held])if(held===car.lane.from&&car.s>car.lane.trimStart+car.type.length/2+MIN_GAP){release(held,car.id);car.held=car.held.filter(node=>node!==held);log('junction-exit',{vehicleId:car.id,nodeId:held});}
     }
     if(settings.accidentsEnabled)detectCollisions(previous);
+    for(const car of cars)car.stoppedFor=car.speed<1?(car.stoppedFor||0)+FIXED_STEP:0;
     for(let i=cars.length-1;i>=0;i--){const car=cars[i];if(!car.incidentId&&!car.turn&&sinkSet.has(car.lane.to)&&car.s-car.type.length/2>=car.lane.length){counts.arrived++;sourceCounts[car.sourceId].arrived++;sinkCounts[car.lane.to].arrived++;sinkCounts[car.targetSinkId].targetCompleted++;counts.totalTravel+=tick*FIXED_STEP-car.enteredAt;for(const node of car.held)release(node,car.id);log('arrived',{vehicleId:car.id,sourceId:car.sourceId,sinkId:car.lane.to,targetSinkId:car.targetSinkId,travelTime:tick*FIXED_STEP-car.enteredAt});cars.splice(i,1);}}
+    measureRoadConditions(FIXED_STEP);
+  }
+  function measureRoadConditions(dt){
+    const conditions=weather(),now=tick*FIXED_STEP,groups=new Map(network.roads.map(road=>[road.id,[]]));
+    for(const car of cars)groups.get(car.lane.road.id).push(car);
+    for(const road of network.roads){
+      const list=groups.get(road.id),allLanes=roadLanes.get(road.id),laneMetres=allLanes.reduce((sum,lane)=>sum+lane.length,0);
+      const usableLaneMetres=allLanes.reduce((sum,lane)=>sum+Math.max(1,lane.length-lane.trimStart-lane.trimEnd),0);
+      const perLane=new Map(allLanes.map(lane=>[lane.key,{length:Math.max(1,lane.length-lane.trimStart-lane.trimEnd),body:0,storage:0,queue:0,count:0}]));
+      let speed=0,free=0,bodyMetres=0,storage=0,queuedVehicles=0,queuedStorage=0,stoppedVehicles=0,longestStoppedSeconds=0,signalWaiting=0,qualified=0,referenceRatio=0;
+      for(const car of list){
+        const expected=Math.min(road.speedLimit,settings.speeds[car.type.id])*conditions.speedFactor;
+        speed+=car.speed*3.6;free+=expected;bodyMetres+=car.type.length;
+        const footprint=car.type.length+(car.type.minGap??MIN_GAP),lane=perLane.get(car.lane.key);
+        storage+=footprint;lane.body+=car.type.length;lane.storage+=footprint;lane.count++;
+        const stoppedFor=car.stoppedFor||0;longestStoppedSeconds=Math.max(longestStoppedSeconds,stoppedFor);
+        if(car.speed<1)stoppedVehicles++;
+        const mature=now-car.enteredAt>=6||car.distance>=25;
+        if(mature){qualified++;const expectedMps=Math.min(expected/3.6,car.curveSpeed||Infinity);referenceRatio+=clamp(car.speed/Math.max(1,expectedMps),0,1);}
+        if(stoppedFor>=3){queuedVehicles++;queuedStorage+=footprint;lane.queue+=footprint;}
+        const signal=network.signals[car.lane.to];
+        if(signal?.enabled&&settings.signalMode==='normal'&&!car.incidentId&&!car.blockedReason){
+          const end=point(car.lane,car.lane.length-car.lane.trim),axis=Math.abs(Math.sin(end.yaw))>=Math.abs(Math.cos(end.yaw))?'ew':'ns';
+          // One normal red interval is expected operation. A queue surviving it is delay evidence.
+          const redAllowance=(axis==='ew'?signal.greenNS:signal.greenEW)+signal.yellow*2+signal.allRed*2+6;
+          if(stoppedFor<redAllowance&&car.speed<1)signalWaiting++;
+        }
+      }
+      const count=list.length,meanSpeedKmh=count?speed/count:null,freeSpeedKmh=count?free/count:road.speedLimit*conditions.speedFactor;
+      const speedRatio=count?meanSpeedKmh/Math.max(.1,freeSpeedKmh):null;
+      const occupancy=clamp(bodyMetres/usableLaneMetres,0,1),storageOccupancy=clamp(storage/usableLaneMetres,0,1);
+      const queueOccupancy=clamp(queuedStorage/usableLaneMetres,0,1),maxLaneOccupancy=Math.max(0,...[...perLane.values()].map(lane=>clamp(lane.storage/lane.length,0,1)));
+      const maxLaneQueueOccupancy=Math.max(0,...[...perLane.values()].map(lane=>clamp(lane.queue/lane.length,0,1)));
+      const pressure=Math.max(smooth(.08,.60,storageOccupancy),.85*smooth(.18,.85,maxLaneOccupancy));
+      const loss=qualified?1-referenceRatio/qualified:0,queueRatio=count?queuedVehicles/count:0;
+      const normalSignalWait=signalWaiting>0&&signalWaiting>=stoppedVehicles*.75&&storageOccupancy<.7&&maxLaneQueueOccupancy<.7;
+      const maturity=count?qualified/count:0,queuePersistence=smooth(3,15,longestStoppedSeconds);
+      const rawCandidate=count?clamp(pressure*(.18+.82*smooth(.12,.85,loss))*maturity*(normalSignalWait?.35:1)*(.65+.35*queuePersistence),0,1):0;
+      const h=trafficHistory.get(road.id)||{score:0,slowFor:0,congestedFor:0,recoveryFor:0,level:'empty'};
+      // A short nearly full bottleneck can be blocked by only two large vehicles. Sparse traffic cannot.
+      const compactBlocked=count>=2&&allLanes.some(lane=>perLane.get(lane.key).count>=2&&perLane.get(lane.key).length<=55)&&maxLaneQueueOccupancy>=.5&&longestStoppedSeconds>=20;
+      const enoughEvidence=count>=3||compactBlocked;
+      const rawScore=rawCandidate*(enoughEvidence?1:count>=2?.2:.1);
+      const slow= enoughEvidence&&!normalSignalWait&&loss>.32&&(storageOccupancy>.16||maxLaneOccupancy>.35)&&rawScore>.18;
+      const congested=enoughEvidence&&!normalSignalWait&&loss>.68&&queueRatio>=.35&&(queueOccupancy>.28||maxLaneQueueOccupancy>.6)&&rawScore>.48;
+      h.slowFor=slow?h.slowFor+dt:0;h.congestedFor=congested?h.congestedFor+dt:0;
+      h.score+= (rawScore-h.score)*(1-Math.exp(-dt/(rawScore>h.score?3:5)));
+      if(!count){h.level='empty';h.slowFor=0;h.congestedFor=0;h.recoveryFor=0;}
+      else if(h.congestedFor>=8) {h.level='congested';h.recoveryFor=0;}
+      else if(h.level==='congested'){
+        h.recoveryFor=congested?0:h.recoveryFor+dt;
+        if(h.recoveryFor>=6){h.level=h.slowFor>=4?'slow':'free';h.recoveryFor=0;}
+      }else if(h.slowFor>=6){h.level='slow';h.recoveryFor=0;}
+      else if(h.level==='slow'){
+        h.recoveryFor=slow?0:h.recoveryFor+dt;
+        if(h.recoveryFor>=5){h.level='free';h.recoveryFor=0;}
+      }else h.level='free';
+      trafficHistory.set(road.id,h);
+      roadConditions.set(road.id,{roadId:road.id,laneCount:allLanes.length,vehicleCount:count,meanSpeedKmh,freeSpeedKmh,speedRatio,
+        densityVehPerKm:count*1000/Math.max(1,laneMetres),queuedVehicles,stoppedVehicles,occupancy,storageOccupancy,queueOccupancy,maxLaneOccupancy,maxLaneQueueOccupancy,
+        usableLaneMetres,longestStoppedSeconds,normalSignalWait,congestionScore:h.score,congestionTarget:rawScore,
+        slowEvidenceSeconds:h.slowFor,congestionEvidenceSeconds:h.congestedFor,level:h.level,label:({empty:'无车辆',free:'畅通',slow:'缓行',congested:'拥堵'})[h.level]});
+    }
   }
   function snapshot(options={}){
     const vehicles=cars.map(car=>{const pose=body(car);let curvature=point(car.lane,car.s).curvature;if(car.turn){const start=Math.max(0,car.turnS-.25),end=Math.min(car.turn.length,car.turnS+.25),a=curvePoint(car.turn,start),b=curvePoint(car.turn,end);curvature=Math.atan2(Math.sin(b.yaw-a.yaw),Math.cos(b.yaw-a.yaw))/Math.max(.001,end-start);}return{x:pose.x,z:pose.z,yaw:pose.yaw,id:car.id,sourceId:car.sourceId,targetSinkId:car.targetSinkId,typeId:car.type.id,speed:car.speed,distance:car.distance,braking:car.accel<-.3,event:car.event??(car.violation==='speeding'&&car.violationOccurred?'speeding':null),length:car.type.length,width:car.type.width,laneId:car.turn?null:car.lane.key,laneIndex:car.lane.index,laneTurns:effectiveLaneTurns(network,car.lane.road,car.lane.forward,car.lane.index),plannedTurn:car.laneNextEdge?classifyTurn(network,car.lane.road,car.lane.forward,car.laneNextEdge.road,car.laneNextEdge.from===car.laneNextEdge.road.a):null,blockedReason:car.blockedReason??null,junctionId:car.turn?.junction??null,roadId:car.lane.road.id,compliant:car.compliant,crashed:car.crashed,incidentId:car.incidentId,steeringAngle:clamp(Math.atan((car.type.length*.6)*(curvature||0)),-.7,.7),desiredSpeed:car.desiredSpeed};});
-    const roadStats={};for(const road of network.roads){const c=laneCounts(road),laneMetres=Array.from({length:c.forward},(_,i)=>laneFor(road,road.a,i).length).reduce((a,b)=>a+b,0)+Array.from({length:c.backward},(_,i)=>laneFor(road,road.b,i).length).reduce((a,b)=>a+b,0);roadStats[road.id]={roadId:road.id,laneCount:c.total,vehicleCount:0,meanSpeedKmh:null,freeSpeedKmh:road.speedLimit*weather().speedFactor,speedRatio:null,densityVehPerKm:0,queuedVehicles:0,level:'empty',label:'无车辆',_speed:0,_free:0,_body:0,_laneMetres:laneMetres};}
-    for(const car of cars){const r=roadStats[car.lane.road.id];r.vehicleCount++;r._speed+=car.speed*3.6;r._free+=Math.min(car.lane.road.speedLimit,settings.speeds[car.type.id])*weather().speedFactor;r._body+=car.type.length;if(car.speed<1)r.queuedVehicles++;}
-    for(const r of Object.values(roadStats)){if(r.vehicleCount){r.meanSpeedKmh=r._speed/r.vehicleCount;r.freeSpeedKmh=r._free/r.vehicleCount;r.speedRatio=r.meanSpeedKmh/r.freeSpeedKmh;r.densityVehPerKm=r.vehicleCount*1000/r._laneMetres;const occupancy=r._body/r._laneMetres,queueRatio=r.queuedVehicles/r.vehicleCount,substantialQueue=r.queuedVehicles>=2&&queueRatio>=.35,dense=occupancy>=.08||r.densityVehPerKm>=12;if(dense&&r.speedRatio<.35&&(substantialQueue||r.vehicleCount>=3)){r.level='congested';r.label='拥堵';}else if(r.speedRatio<.7&&(r.queuedVehicles>0||r.vehicleCount>=2)){r.level='slow';r.label='缓行';}else{r.level='free';r.label='畅通';}}delete r._speed;delete r._free;delete r._body;delete r._laneMetres;}
+    const roadStats=Object.fromEntries([...roadConditions].map(([id,value])=>[id,{...value}]));
     const summaries=Object.values(roadStats);
     const portStats={sources:Object.fromEntries(sourceIds.map(id=>[id,{...sourceCounts[id],queued:queue.filter(req=>req.sourceId===id).length,active:cars.filter(car=>car.sourceId===id).length}])),sinks:Object.fromEntries(sinkIds.map(id=>[id,{...sinkCounts[id],queued:queue.filter(req=>req.targetSinkId===id).length,active:cars.filter(car=>car.targetSinkId===id).length}]))};
     return{modelVersion:MODEL_VERSION,time:tick*FIXED_STEP,tick,vehicles,roadStats,incidents:incidents.map(({duration,cleared,...incident})=>({...incident,vehicleIds:[...incident.vehicleIds]})),stats:{portStats,requested:counts.requested,queued:queue.length,active:cars.length,arrived:counts.arrived,removed:counts.removed,turnLaneBlocked:blockedRequests.size+cars.filter(car=>car.blockedReason).length,waiting:queue.length+cars.filter(car=>car.speed<.5).length,meanTravelTime:counts.arrived?counts.totalTravel/counts.arrived:null,breakdowns:counts.breakdowns,violations:counts.violations,safetyCorrections:counts.safetyCorrections,collisions:counts.collisions,activeIncidents:incidents.length,clearedIncidents:counts.clearedIncidents,congestedRoads:summaries.filter(r=>r.level==='congested').length,slowRoads:summaries.filter(r=>r.level==='slow').length,totalRoads:network.roads.length},signals:Object.fromEntries(Object.entries(network.signals).map(([id])=>[id,effectivePhase(id)])),conditions:{...weather(),weather:settings.weather,timeOfDay:settings.timeOfDay,signalMode:settings.signalMode,compliance:settings.compliance},eventCount:events.length,...(options.includeEvents===false?{}:{events:events.map(event=>({...event}))})};
   }
+  measureRoadConditions(0);
   return{
     step(dt=FIXED_STEP){if(!finite(dt,0,60))throw new Error('模拟步长应为 0 至 60 秒');remainder+=dt;while(remainder>=FIXED_STEP-1e-10){fixedStep();remainder-=FIXED_STEP;}},snapshot,
     updateSettings(partial){

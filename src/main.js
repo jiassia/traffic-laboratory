@@ -11,9 +11,10 @@ import {junctionIssues} from './junction-layout.mjs';
 import {terminalIds,terminalLabel} from './terminals.mjs';
 import {roadPath,roadPointAt,projectOnRoad} from './geometry.mjs';
 import {enhanceSelects} from './custom-select.js';
+import {buildHomeHtml,checkSavedDesign,checkCurrentDraft} from './home.js';
 
 const icons={
-  select:'<path d="m5 3 14 10-7 1-3 7Z"/>',curve:'<path d="M4 20C4 4 20 20 20 4"/><circle cx="4" cy="20" r="2"/><circle cx="20" cy="4" r="2"/>',circle:'<circle cx="12" cy="12" r="8"/><path d="M12 4v4m0 8v4m-8-8h4m8 0h4"/>',free:'<path d="M3 18c2-15 8 11 10-3s9 6 8-9"/>',lamp:'<path d="M6 22V7a4 4 0 0 1 4-4h5l4 4H9m5 0v3h5V7"/>',person:'<circle cx="12" cy="4" r="2"/><path d="m8 21 3-8 4 8m-4-8V8l-5 5m5-5 6 5"/>',weather:'<path d="M7 15a5 5 0 1 1 9-4 4 4 0 1 1 1 8H6a3 3 0 0 1 1-6M8 21l-1 2m6-2-1 2m6-2-1 2"/>',
+  home:'<path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1V10Z"/>',select:'<path d="m5 3 14 10-7 1-3 7Z"/>',curve:'<path d="M4 20C4 4 20 20 20 4"/><circle cx="4" cy="20" r="2"/><circle cx="20" cy="4" r="2"/>',circle:'<circle cx="12" cy="12" r="8"/><path d="M12 4v4m0 8v4m-8-8h4m8 0h4"/>',free:'<path d="M3 18c2-15 8 11 10-3s9 6 8-9"/>',lamp:'<path d="M6 22V7a4 4 0 0 1 4-4h5l4 4H9m5 0v3h5V7"/>',person:'<circle cx="12" cy="4" r="2"/><path d="m8 21 3-8 4 8m-4-8V8l-5 5m5-5 6 5"/>',weather:'<path d="M7 15a5 5 0 1 1 9-4 4 4 0 1 1 1 8H6a3 3 0 0 1 1-6M8 21l-1 2m6-2-1 2m6-2-1 2"/>',
   start:'<path d="M7 20V11a5 5 0 0 1 10 0v9M5 20h4m6 0h4"/>',
   road:'<path d="m7 3-4 18M17 3l4 18M12 3v4m0 4v3m0 4v3"/>',
   exit:'<path d="M6 21V10a6 6 0 0 1 12 0v11M9 13h6m-3-3 3 3-3 3"/>',
@@ -32,11 +33,11 @@ const icon=name=>`<span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24"
 const esc=text=>String(text).replace(/[&<>"']/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const clone=value=>JSON.parse(JSON.stringify(value));
-const state={network:emptyNetwork(),settings:defaultSettings(),mode:'edit',tool:'source',panel:null,selectedRoad:null,selectedNode:null,history:[],future:[],simulation:null,running:false,speed:4,anchor:null,garageType:'sedan',records:[],draft:null,runSettings:null,runNetwork:null,shape:'straight',buildTab:'roads',facilityType:'streetlight',snapNodes:true,snapRoads:true,snapAngles:false,snapGrid:false,editView:'2d',newRoadType:'local',newRoadSpeed:50,newOneWay:false,roadWidth:9.6,newLanesForward:1,newLanesBackward:1,heatmap:true};
+const state={network:emptyNetwork(),settings:defaultSettings(),mode:'home',hasSession:false,tool:'source',panel:null,selectedRoad:null,selectedNode:null,history:[],future:[],simulation:null,running:false,speed:4,anchor:null,garageType:'sedan',records:[],draft:null,runSettings:null,runNetwork:null,shape:'straight',buildTab:'roads',facilityType:'streetlight',snapNodes:true,snapRoads:true,snapAngles:false,snapGrid:false,editView:'2d',newRoadType:'local',newRoadSpeed:50,newOneWay:false,roadWidth:9.6,newLanesForward:1,newLanesBackward:1,heatmap:true};
 const storageKey='traffic-laboratory-design-v1',recordKey='traffic-laboratory-records-v1';
 try{const data=JSON.parse(localStorage.getItem(recordKey)||'[]');if(Array.isArray(data))state.records=data.filter(r=>r&&r.network&&r.stats).slice(-12);}catch{}
 
-$('#app').innerHTML=`<header class="topbar"><div class="brand"><span class="brand-mark" aria-hidden="true"><img src="./assets/icons/brand.svg" alt=""></span><span class="brand-name">堵车实验室</span><span id="mode-label" class="mode-label">设计</span></div><div class="top-actions"><button class="text-button template-entry" data-action="presets">模板</button><button class="text-button subtle top-save" data-action="save" title="保存设计 · Ctrl S">${icon('save')}保存</button><button class="text-button subtle" data-action="toggle-view" id="view-toggle">3D 预览</button><button class="icon-button undo-button" data-action="undo" aria-label="撤销" title="撤销 · Ctrl Z">${icon('undo')}</button><button class="icon-button redo-button" data-action="redo" aria-label="重做" title="重做 · Ctrl Shift Z">${icon('redo')}</button><button class="subtle text-button hidden" id="garage-return" data-action="garage-return">${icon('back')}返回设计</button></div></header>
+$('#app').innerHTML=`<div id="home-host" class="hidden"></div><header class="topbar" id="topbar"><div class="brand"><button class="nav-home-btn" data-action="go-home" title="返回首页">${icon('home')}<span>首页</span></button><span class="brand-mark" aria-hidden="true"><img src="./assets/icons/brand.svg" alt=""></span><span class="brand-name">堵车实验室</span><span id="mode-label" class="mode-label">设计</span></div><div class="top-actions"><button class="text-button template-entry" data-action="presets">模板</button><button class="text-button subtle top-save" data-action="save" title="保存设计 · Ctrl S">${icon('save')}保存</button><button class="text-button subtle" data-action="toggle-view" id="view-toggle">3D 预览</button><button class="icon-button undo-button" data-action="undo" aria-label="撤销" title="撤销 · Ctrl Z">${icon('undo')}</button><button class="icon-button redo-button" data-action="redo" aria-label="重做" title="重做 · Ctrl Shift Z">${icon('redo')}</button><button class="subtle text-button hidden" id="garage-return" data-action="garage-return">${icon('back')}返回设计</button></div></header>
 <main id="stage"><div class="camera-controls"><button data-action="toggle-heatmap" id="heatmap-toggle" title="拥堵热力图" aria-label="拥堵热力图">${icon('car')}</button><button data-action="zoom-in" aria-label="放大">＋</button><button data-action="zoom-out" aria-label="缩小">−</button><button data-action="fit" aria-label="重置视角" title="重置视角">${icon('focus')}</button></div><div class="view-label" id="view-label">二维设计 · 30 米网格</div>
 <div class="editor-bottom" id="editor-bottom"><div class="connection" id="connection"><span class="status-dot"></span><span id="connection-text">先放置入口</span></div>
 <div class="construction-dock"><div class="dock-tabs"><button class="active" data-build-tab="roads">${icon('road')}道路</button><button data-build-tab="facilities">${icon('lamp')}设施</button><button data-action="presets">${icon('experiment')}模板</button><button data-action="construction-settings" class="dock-settings">${icon('settings')}建造设置</button></div>
@@ -68,7 +69,7 @@ $('#app').innerHTML=`<header class="topbar"><div class="brand"><span class="bran
   </div>
 </nav>
 <div class="hud hidden" id="hud" role="button" tabindex="0" aria-label="查看运行统计" data-action="stats"><div class="hud-item"><span>等待</span><strong id="stat-waiting">0</strong></div><span class="sep"></span><div class="hud-item"><span>已到达</span><strong id="stat-arrived">0</strong></div><span class="sep"></span><div class="hud-item"><span>路上用时</span><strong id="stat-travel">—</strong></div></div><div class="sim-status hidden" id="sim-status"></div><button class="incident-pill hidden" id="incident-pill" data-action="incidents"></button>
-<div id="traffic-status" class="traffic-status hidden" data-level="empty"><span id="traffic-summary">等待车流进入</span><span id="actual-speed">目标 1×</span></div><button id="demand-pill" class="demand-pill hidden" data-action="demand">进车量 <strong id="demand-pill-value">12</strong> 辆/分</button><div id="traffic-legend" class="traffic-legend hidden"><span><i class="free"></i>畅通</span><span><i class="slow"></i>缓行</span><span><i class="congested"></i>拥堵</span><button data-action="congestion-help" aria-label="拥堵分级说明">${icon('info')}</button></div>
+<div id="traffic-status" class="traffic-status hidden" data-level="empty"><span id="traffic-summary">等待车流进入</span><span id="actual-speed">目标 4×</span></div><button id="demand-pill" class="demand-pill hidden" data-action="demand">进车量 <strong id="demand-pill-value">12</strong> 辆/分</button><div id="traffic-legend" class="traffic-legend hidden"><span><i class="free"></i>畅通</span><span><i class="slow"></i>缓行</span><span><i class="congested"></i>拥堵</span><button data-action="congestion-help" aria-label="拥堵分级说明">${icon('info')}</button></div>
 <div class="runtime-bottom hidden" id="runtime-bottom"><div class="runtime-toolbar"><button id="pause-button" data-action="pause" aria-label="暂停">${icon('pause')}</button><button data-speed="1">1×</button><button data-speed="2">2×</button><button data-speed="4" class="active">4×</button><button data-speed="10">10×</button><button class="speed-custom-btn" data-action="custom-speed" title="自定义仿真倍速">自定义</button><span class="divider"></span><button class="return-button" data-action="return">${icon('undo')}回到设计</button></div></div>
 <div class="garage-overlay hidden" id="garage-overlay"><div class="garage-title"><h1 id="garage-name">轿车</h1><div class="accent"></div><p id="garage-size"></p></div><div class="garage-hint">拖动旋转 · 滚轮缩放</div><div class="garage-cards">${VEHICLE_TYPES.map(t=>`<button class="garage-card" data-vehicle="${t.id}" aria-label="查看${t.name}"><img src="${assetUrl(`previews/${t.id}.png`)}" alt="${t.name}" loading="lazy"><span>${t.name}</span></button>`).join('')}</div></div><div class="loading-note" id="loading-note">正在加载三维车辆</div></main>
 <aside class="panel hidden" id="panel" aria-label="设置面板"><div class="panel-head"><div class="panel-head-title-wrap"><span class="panel-parent-badge" id="panel-parent-badge">控制中心 › 子设置</span><h2 id="panel-title"></h2></div><button class="icon-button" data-action="close-panel" aria-label="关闭面板">${icon('close')}</button></div><div id="panel-context" class="panel-context hidden">检查中 · 已暂停</div><div class="panel-body" id="panel-body"></div><div class="panel-foot" id="panel-foot"></div></aside><input id="import-file" type="file" accept=".json,application/json" class="hidden"><div class="toast hidden" id="toast" role="status" aria-live="polite"></div><div id="dialog-host"></div>`;
@@ -79,6 +80,41 @@ const view=new TrafficScene($('#stage'),{onError:(message)=>toast(message,true),
 view.fit();
 
 function refresh(){
+  const isHome=state.mode==='home';
+  const homeHost=$('#home-host');
+  if(homeHost){
+    if(isHome){
+      const draftInfo=checkCurrentDraft(state);
+      const savedInfo=checkSavedDesign(storageKey);
+      homeHost.innerHTML=buildHomeHtml({draftInfo,savedInfo});
+      homeHost.classList.remove('hidden');
+    }else{
+      homeHost.innerHTML='';
+      homeHost.classList.add('hidden');
+    }
+  }
+  const topbar=$('#topbar');
+  if(topbar)topbar.classList.toggle('hidden',isHome);
+  if(isHome){
+    $('#editor-bottom')?.classList.add('hidden');
+    $('#runtime-bottom')?.classList.add('hidden');
+    $('#hud')?.classList.add('hidden');
+    $('#sim-status')?.classList.add('hidden');
+    $('#garage-overlay')?.classList.add('hidden');
+    $('#garage-return')?.classList.add('hidden');
+    $('#traffic-status')?.classList.add('hidden');
+    $('#traffic-legend')?.classList.add('hidden');
+    $('#demand-pill')?.classList.add('hidden');
+    $('#incident-pill')?.classList.add('hidden');
+    $('#command-rail')?.classList.add('hidden');
+    $('#tool-hint')?.classList.add('hidden');
+    $('#view-toggle')?.classList.add('hidden');
+    $('#heatmap-toggle')?.classList.add('hidden');
+    $('#view-label')?.classList.add('hidden');
+    $('.camera-controls')?.classList.add('hidden');
+    view.setNavigationTool('select');
+    return;
+  }
   const edit=state.mode==='edit',run=state.mode==='run',garage=state.mode==='garage';
   $('#app').classList.toggle('is-running',run);$('#app').classList.toggle('is-facility-tool',state.tool==='facility');if(!run)$('#incident-pill').classList.add('hidden');
   $('.template-entry').classList.toggle('hidden',!edit);
@@ -125,14 +161,135 @@ const templates=[
   {id:'signal-balanced',title:'信号 · 等分配时',detail:'东西 30 秒 / 南北 30 秒',model:'signal',variant:'balanced'},
   {id:'signal-adjusted',title:'信号 · 东西优先',detail:'东西 45 秒 / 南北 15 秒',model:'signal',variant:'adjusted'}
 ];
-function loadTemplate(id){
-  if(state.mode!=='edit')return;const item=templates.find(t=>t.id===id);if(!item)return;
-  const network=item.model?createClassicNetwork(item.model,item.variant,{green:45}):createPreset(item.id);
-  if(item.approachLanes){for(const r of network.roads){r.lanesForward=item.approachLanes;r.lanesBackward=r.oneWay?0:item.approachLanes;r.width=roadWidth(r);}for(const f of network.facilities||[]){const r=network.roads.find(x=>x.id===f.roadId);if(!r)continue;const p=roadPointAt(network,r,f.s,(f.side||1)*(roadWidth(r)/2+(f.type==='trafficLight'?1.4:1.6)));f.x=p.x;f.z=p.z;if(f.type!=='trafficLight')f.heading=p.yaw;}}
-  closePanel();commit(network);state.anchor=null;state.tool='select';
-  if(item.model)activeClassic={id:item.model,variant:item.variant};
-  state.classicLabel=item.title;editor.defaultHint();view.fit();refresh();toast(`已载入${item.title}，可直接编辑或开始运行`);
+// 清理编辑器所有半绘制中态（手势、吸附点、预览线、悬停徽标、临时对话框）
+function clearDraftInteractions(){
+  if(typeof editor!=='undefined'&&editor)editor.cancel(true);
+  state.anchor=null;
+  if(typeof view!=='undefined'&&view){
+    view.setPreview([]);
+    view.setHover?.(null);
+  }
+  const host=$('#dialog-host');
+  if(host)host.innerHTML='';
 }
+
+// 统一进入编辑器工作区
+function enterEditor(){
+  state.hasSession=true;
+  clearDraftInteractions();
+  closePanel();
+  state.mode='edit';
+  state.tool=state.network.roads.length?'select':'source';
+  if(typeof editor!=='undefined'&&editor)editor.setTool(state.tool);
+  view.setMode('edit');
+  view.setNetwork(state.network);
+  editor.defaultHint();
+  view.fit();
+  refresh();
+}
+
+// 返回首页导航（暂停当前仿真并清理交互，保留未保存草稿与设置，不覆盖存储）
+function returnToHome(){
+  if(state.mode==='run'){
+    state.running=false;
+    state.panelWasRunning=false;
+  }
+  if(state.mode==='garage'){
+    state.mode='edit';
+  }
+  closePanel();
+  clearDraftInteractions();
+  state.mode='home';
+  refresh();
+}
+
+// 首页开始空白设计
+async function handleStartBlank(){
+  const draft=checkCurrentDraft(state);
+  if(draft.hasContent){
+    await confirmDialog('开始空白设计','当前未保存的草稿将被清空。确定要创建全新的空白设计吗？','开始空白设计',()=>{
+      clearDraftInteractions();
+      commit(emptyNetwork());
+      state.tool='source';
+      enterEditor();
+      toast('已开启全新空白设计');
+    });
+  }else{
+    clearDraftInteractions();
+    commit(emptyNetwork());
+    state.tool='source';
+    enterEditor();
+  }
+}
+
+// 首页继续当前草稿（保留所有未保存数据）
+function handleResumeDraft(){
+  enterEditor();
+  toast('已恢复当前草稿');
+}
+
+// 首页载入本地已存设计（仅在存在有效存档时调用）
+async function handleLoadSaved(){
+  const draft=checkCurrentDraft(state);
+  const apply=()=>{
+    let text;
+    try{text=localStorage.getItem(storageKey);}catch{toast('当前浏览器不允许读取本地存储',true);return;}
+    if(!text){toast('此浏览器尚无已保存设计',true);return;}
+    applyImport(text);
+    enterEditor();
+  };
+  if(draft.hasContent){
+    await confirmDialog('载入已存设计','当前未保存的草稿将被替换为本地已存设计。确定载入吗？','载入已存设计',apply);
+  }else{
+    apply();
+  }
+}
+
+// 载入真实路网模板（复用真实 createPreset / createClassicNetwork）
+async function handleSelectTemplate(id){
+  const item=templates.find(t=>t.id===id);
+  if(!item)return;
+  const draft=checkCurrentDraft(state);
+  const apply=()=>{
+    clearDraftInteractions();
+    const network=item.model?createClassicNetwork(item.model,item.variant,{green:45}):createPreset(item.id);
+
+    if(item.approachLanes){
+      for(const r of network.roads){
+        r.lanesForward=item.approachLanes;
+        r.lanesBackward=r.oneWay?0:item.approachLanes;
+        r.width=roadWidth(r);
+      }
+      for(const f of network.facilities||[]){
+        const r=network.roads.find(x=>x.id===f.roadId);
+        if(!r)continue;
+        const p=roadPointAt(network,r,f.s,(f.side||1)*(roadWidth(r)/2+(f.type==='trafficLight'?1.4:1.6)));
+        f.x=p.x;
+        f.z=p.z;
+        if(f.type!=='trafficLight')f.heading=p.yaw;
+      }
+    }
+    closePanel();
+    commit(network);
+    state.anchor=null;
+    state.tool='select';
+    if(item.model)activeClassic={id:item.model,variant:item.variant};
+
+    state.classicLabel=item.title;
+    enterEditor();
+    toast(`已载入${item.title}，可直接编辑或开始运行`);
+  };
+  if(draft.hasContent){
+    await confirmDialog('载入模板路网',`当前未保存草稿将被“${item.title}”替换。确定载入吗？`,'载入模板',apply);
+  }else{
+    apply();
+  }
+}
+
+function loadTemplate(id){
+  handleSelectTemplate(id);
+}
+
 function updateToolHint({title,detail,valid=true}){$('#tool-hint-title').textContent=title;$('#tool-hint-detail').textContent=detail;$('#tool-hint').dataset.valid=valid;}
 const turnOptions=[['auto','自动'],['left','↰ 左转'],['through','↑ 直行'],['right','↱ 右转'],['left,through','左转＋直行'],['through,right','直行＋右转'],['left,through,right','左直右共享']];
 function turnFields(prefix,road){const c=laneCounts(road);return ['forward','backward'].map(dir=>{const n=dir==='forward'?c.forward:c.backward,rules=road[dir==='forward'?'turnsForward':'turnsBackward'];return n?`<h4>${dir==='forward'?'正向':'反向'} · 从左到右</h4>${Array.from({length:n},(_,i)=>{const value=rules?.[i]?.length?rules[i].join(','):'auto';return `<label class="turn-row"><span>第 ${i+1} 道</span><select data-turn-form="${prefix}" data-turn-direction="${dir}" data-turn-index="${i}" aria-label="${dir==='forward'?'正向':'反向'}第${i+1}道用途">${turnOptions.map(([v,t])=>`<option value="${v}" ${v===value?'selected':''}>${t}</option>`).join('')}</select></label>`;}).join('')}`:'';}).join('');}
@@ -190,8 +347,8 @@ function portRows(stats){
   return `<h3>入口分流</h3><dl class="stats-list">${sources.map(id=>{const p=stats.portStats.sources[id];return p?`<dt>${terminalLabel(state.network,'source',id)}</dt><dd data-port-stat="source:${esc(id)}">已进网 ${p.requested-p.queued} · 积压 ${p.queued}</dd>`:'';}).join('')}</dl><h3>出口到达</h3><dl class="stats-list">${sinks.map(id=>`<dt>${terminalLabel(state.network,'sink',id)}</dt><dd data-port-stat="sink:${esc(id)}">${stats.portStats.sinks[id]?.arrived||0} 辆</dd>`).join('')}</dl>`;
 }
 function openStats(){if(state.panel==='运行统计'){closePanel();return;}if(!state.simulation){toast('仿真尚未运行，开始运行后可查看实时统计');return;}const snap=state.simulation.snapshot();setPanel('运行统计',`${statRows(snap.stats,snap.time)}${portRows(snap.stats)}<p>等待包含各入口积压与道路上的低速车辆。平均路上用时只统计车尾已通过出口的完成车辆，不包含入网前等待。</p><p>当前模型为教学仿真，参数未经过现实道路标定。</p>`,'<button class="primary" data-action="save-record">保存本轮记录</button>');}
-function openRoadTraffic(id){if(!state.simulation)return;const r=state.simulation.snapshot({includeEvents:false}).roadStats[id];if(!r)return;setPanel('路段拥堵情况',`<div class="congestion-card" data-level="${r.level}"><strong>${r.label}</strong><span>${r.vehicleCount} 辆在此路段</span></div><dl class="stats-list"><dt>平均车速</dt><dd>${r.meanSpeedKmh==null?'—':r.meanSpeedKmh.toFixed(1)+' km/h'}</dd><dt>自由行驶参考速度</dt><dd>${r.freeSpeedKmh.toFixed(1)} km/h</dd><dt>速度保持比例</dt><dd>${r.speedRatio==null?'—':(r.speedRatio*100).toFixed(0)+'%'}</dd><dt>低速排队车辆</dt><dd>${r.queuedVehicles} 辆</dd><dt>车道密度</dt><dd>${r.densityVehPerKm.toFixed(1)} 辆/km</dd></dl><p>密度按车道总长度计算。速度低于 3.6 km/h 的车辆计入本路段低速排队。</p><button class="subtle" style="padding:12px 18px" data-action="congestion-help">查看分级依据</button>`);}
-function openCongestionHelp(){setPanel('拥堵如何显示',`<div class="congestion-card" data-level="free"><strong>绿色 · 畅通</strong><span>车辆按当前路段的正常速度通行</span></div><div class="congestion-card" data-level="slow"><strong>黄色 · 缓行</strong><span>平均速度低于参考速度的 70%，并出现多车或低速等待</span></div><div class="congestion-card" data-level="congested"><strong>红色 · 拥堵</strong><span>平均速度低于参考速度的 35%，同时存在较密集车流与排队</span></div><p>参考速度综合车型期望速度与道路限速，车辆密度按车道总长计算。单辆刚起步车辆不会仅因速度较低被判为拥堵。</p><p>红色分级还要求车身占用比例达到 8% 或车道密度达到 12 辆/km，并满足至少 3 辆在途，或至少 2 辆低速排队且排队比例达到 35%。这些是本游戏的展示规则。</p><p>点击运行画面中的道路可查看该路段车速、密度和排队数量。入口外的积压单独计入“等待”。</p>`);}
+function openRoadTraffic(id){if(!state.simulation)return;const r=state.simulation.snapshot({includeEvents:false}).roadStats[id];if(!r)return;setPanel('路段拥堵情况',`<div class="congestion-card" data-level="${r.level}"><strong>${r.label}</strong><span>${r.vehicleCount} 辆在此路段</span></div><dl class="stats-list"><dt>平均车速</dt><dd>${r.meanSpeedKmh==null?'—':r.meanSpeedKmh.toFixed(1)+' km/h'}</dd><dt>自由行驶参考速度</dt><dd>${r.freeSpeedKmh.toFixed(1)} km/h</dd><dt>速度保持比例</dt><dd>${r.speedRatio==null?'—':(r.speedRatio*100).toFixed(0)+'%'}</dd><dt>低速排队车辆</dt><dd>${r.queuedVehicles} 辆</dd><dt>车道密度</dt><dd>${r.densityVehPerKm.toFixed(1)} 辆/km</dd><dt>有效空间占用</dt><dd>${((r.storageOccupancy||0)*100).toFixed(0)}%</dd><dt>连续拥堵度</dt><dd>${((r.congestionScore||0)*100).toFixed(0)} / 100</dd><dt>最长连续停等</dt><dd>${(r.longestStoppedSeconds||0).toFixed(1)} 秒</dd></dl><p>密度按车道总长度计算。速度低于 3.6 km/h 的车辆计入本路段低速排队。</p><button class="subtle" style="padding:12px 18px" data-action="congestion-help">查看分级依据</button>`);}
+function openCongestionHelp(){setPanel('拥堵如何显示',`<div class="congestion-card" data-level="free"><strong>绿色 · 畅通</strong><span>车流稀疏，或车辆保持正常通行</span></div><div class="congestion-card" data-level="slow"><strong>黄色 · 缓行</strong><span>速度下降并出现持续的空间占用，证据累计至少 6 秒</span></div><div class="congestion-card" data-level="congested"><strong>红色 · 拥堵</strong><span>较高占用、明显降速与排队同时持续至少 8 秒</span></div><p>颜色按连续拥堵度逐渐变化，绿色、黄色与红色之间保留中间色。道路与路口的连接处共享颜色，再沿路段平滑过渡。</p><p>判断综合有效车道长度、车身与停车间距占用、逐车道队列、相对车速和停等时间。正常红灯停等享有宽限；普通路段的两辆车不会仅因低速就触发预警。短路段确实接近填满且长时间无法通行时，少量车辆也可能造成堵塞。</p><p>恢复畅通需要持续改善，避免反复跳色。点击道路可查看车速、占用、拥堵度和等待时间。入口外积压单独计入“等待”。这些指标用于本游戏的对比观察。</p>`);}
 function saveRecord(){if(!state.simulation)return;const snap=state.simulation.snapshot();const record={id:Date.now(),title:`实验 ${state.records.length+1}`,createdAt:new Date().toLocaleString('zh-CN'),modelVersion:MODEL_VERSION,network:clone(state.runNetwork),settings:clone(state.runSettings),time:snap.time,stats:snap.stats,events:snap.events};state.records.push(record);state.records=state.records.slice(-12);try{localStorage.setItem(recordKey,JSON.stringify(state.records));toast('本轮记录已保存');}catch{toast('浏览器存储不足，记录仍可在本次会话导出',true);}openRecords();}
 function openRecords(){if(state.panel==='实验记录'){closePanel();return;}const records=[...state.records].reverse();setPanel('实验记录',records.length?`${records.slice(0,2).length===2?`<h3>最近两次对照</h3><div class="settings-note">${records[1].time.toFixed(0)} 秒 / ${records[0].time.toFixed(0)} 秒<br>完成 ${records[1].stats.arrived} / ${records[0].stats.arrived} 辆<br>入口积压 ${records[1].stats.queued} / ${records[0].stats.queued} 辆</div><p>比较前应确认观测时长、需求和随机种子一致。</p>`:''}${records.map(r=>`<div class="record-card"><h3>${esc(r.title)} · ${r.time.toFixed(1)} 秒</h3><p>${esc(r.createdAt)}</p><p>已到达 ${r.stats.arrived} · 在途 ${r.stats.active} · 入口 ${r.stats.queued}</p><p>平均路上用时 ${r.stats.meanTravelTime==null?'—':r.stats.meanTravelTime.toFixed(1)+' 秒'}</p><button data-record-export="${r.id}">${icon('download')} 导出记录</button>${state.mode==='edit'?` <button data-record-load="${r.id}">载入配置</button>`:''}</div>`).join('')}`:'<h3>尚无实验记录</h3><p>开始运行后，从菜单保存当前统计。记录包含路网、随机种子、运行设置与事件。</p>');}
 function saveDesign(){const text=JSON.stringify({version:1,network:state.network,settings:state.settings},null,2);try{localStorage.setItem(storageKey,text);toast('设计已保存到此浏览器');}catch{toast('本地保存失败，可使用导出设计保存文件',true);}}
@@ -202,7 +359,25 @@ function confirmDialog(title,body,label,apply){return new Promise(resolve=>{cons
 function customSpeedDialog(){return new Promise(resolve=>{const host=$('#dialog-host');const curSpeed=[1,2,4,10].includes(state.speed)?50:state.speed;host.innerHTML=`<div class="dialog-backdrop"><section class="dialog" role="dialog" aria-modal="true" aria-labelledby="dialog-title"><h2 id="dialog-title">自定义仿真倍速</h2><p>可自由指定 1 至 300 之间的仿真倍速，或点击预设快捷填入。</p><div class="field" style="margin:16px 0 12px;"><label for="custom-speed-input">倍速数值 (×)</label><input id="custom-speed-input" type="number" min="1" max="300" step="1" value="${curSpeed}" style="font-size:16px;font-weight:600;"></div><div class="demand-presets" style="margin-bottom:18px;">${[20,50,100,200].map(s=>`<button type="button" class="preset-speed-btn" data-set-speed="${s}">${s}×</button>`).join('')}</div><div class="dialog-actions"><button id="dialog-cancel">取消</button><button id="dialog-confirm" class="primary">应用倍速</button></div></section></div>`;const was=state.running;state.running=false;const finish=ok=>{const val=Number($('#custom-speed-input')?.value);host.innerHTML='';state.running=was;if(ok&&Number.isFinite(val)&&val>=1&&val<=300){state.speed=val;accumulator=0;rateWindowStart=performance.now();rateSimStart=state.simulation?.snapshot({includeEvents:false}).time||0;toast(`已设置仿真速度为 ${val}×`);}refresh();resolve(ok);};$('#dialog-cancel').onclick=()=>finish(false);$('#dialog-confirm').onclick=()=>finish(true);host.querySelectorAll('.preset-speed-btn').forEach(b=>{b.onclick=(e)=>{e.preventDefault();$('#custom-speed-input').value=b.dataset.setSpeed;};});$('#custom-speed-input').focus();$('#custom-speed-input').onkeydown=e=>{if(e.key==='Enter')finish(true);};});}
 
 document.addEventListener('click',async e=>{
-  const button=e.target.closest('button,[data-action]');if(!button||button.disabled)return;
+  const button=e.target.closest('button,[data-action],[data-home-action],[data-home-template]');if(!button||button.disabled)return;
+  if(button.dataset.homeAction){
+    const act=button.dataset.homeAction;
+    if(act==='start-blank'){handleStartBlank();return;}
+    if(act==='resume-draft'){handleResumeDraft();return;}
+    if(act==='load-saved'){handleLoadSaved();return;}
+    if(act==='open-templates'){$('#home-main-view')?.classList.add('hidden');$('#home-templates-view')?.classList.remove('hidden');return;}
+    if(act==='close-templates'){$('#home-templates-view')?.classList.add('hidden');$('#home-main-view')?.classList.remove('hidden');return;}
+    if(act==='theory'){enterEditor();theory.open();return;}
+    return;
+  }
+  if(button.dataset.homeTemplate){
+    handleSelectTemplate(button.dataset.homeTemplate);
+    return;
+  }
+  if(button.dataset.action==='go-home'){
+    returnToHome();
+    return;
+  }
   if(button.dataset.theoryTab){theory.open(button.dataset.theoryTab);return;}
   if(button.dataset.theoryVariant){theory.variant=button.dataset.theoryVariant;theory.open('braess');return;}
   if(button.dataset.laneCount){updateLaneForm(button.dataset.laneForm,Number(button.dataset.laneCount));return;}
@@ -231,12 +406,12 @@ document.addEventListener('click',async e=>{
 document.addEventListener('input',e=>{if(e.target.id==='demand')$('#demand-output').textContent=`${e.target.value} 辆/分`;if(['breakdown','violation'].includes(e.target.id))$(`#${e.target.id}-output`).textContent=`${e.target.value}%`;if(e.target.dataset.speedType)$(`#value-${e.target.dataset.speedType}`).textContent=e.target.value;});
 document.addEventListener('change',e=>{if(e.target.id==='new-road-oneway'||e.target.id==='road-direction'){const prefix=e.target.id==='new-road-oneway'?'new':'road',total=Number($(`#${prefix}-lanes-forward`).value)+Number($(`#${prefix}-lanes-backward`).value);const control=e.target;const oneWay=prefix==='new'?control.checked:control.value==='one';updateLaneForm(prefix,Math.max(oneWay?1:2,total));}if(e.target.id?.includes('-lanes-'))updateLaneForm(e.target.id.startsWith('new-')?'new':'road');if(e.target.id==='signal-node')openSignal(e.target.value);});
 $('#import-file').addEventListener('change',async e=>{const file=e.target.files[0];if(file){if(file.size>1000000)toast('设计文件不能超过 1 MB',true);else applyImport(await file.text());}e.target.value='';});
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){if($('#dialog-cancel')){$('#dialog-cancel').click();return;}if(state.panel)closePanel();else if(state.mode==='garage')returnGarage();else{editor.cancel();refresh();}return;}if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'){e.preventDefault();saveDesign();}if(['INPUT','SELECT','TEXTAREA'].includes(e.target.tagName))return;if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){e.preventDefault();e.shiftKey?redo():undo();}if(state.mode==='edit'&&!state.panel){const tool={v:'select',b:'road',d:'erase'}[e.key.toLowerCase()];if(tool){e.preventDefault();setTool(tool);}}if(e.code==='Space'&&state.mode==='run'&&!state.panel){e.preventDefault();state.running=!state.running;refresh();}if(e.key==='Enter'&&e.target.id==='hud')openStats();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('#dialog-cancel')){$('#dialog-cancel').click();return;}if(state.mode==='home')return;if(e.key==='Escape'){if(state.panel)closePanel();else if(state.mode==='garage')returnGarage();else{editor.cancel();refresh();}return;}if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'){e.preventDefault();saveDesign();}if(['INPUT','SELECT','TEXTAREA'].includes(e.target.tagName))return;if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){e.preventDefault();e.shiftKey?redo():undo();}if(state.mode==='edit'&&!state.panel){const tool={v:'select',b:'road',d:'erase'}[e.key.toLowerCase()];if(tool){e.preventDefault();setTool(tool);}}if(e.code==='Space'&&state.mode==='run'&&!state.panel){e.preventDefault();state.running=!state.running;refresh();}if(e.key==='Enter'&&e.target.id==='hud')openStats();});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&state.mode==='run'){state.running=false;state.panelWasRunning=false;refresh();toast('已暂停，返回后可继续运行');}previous=performance.now();accumulator=0;});
 
 let previous=performance.now(),accumulator=0,lastHud=0,previewClock=0,rateWindowStart=performance.now(),rateSimStart=0,actualRate=1;
 function animate(now){const dt=Math.min(.1,Math.max(0,(now-previous)/1000));previous=now;
-  if(state.mode==='run'&&state.simulation){if(state.running&&!document.hidden){accumulator+=dt*state.speed;const deadline=performance.now()+9;let steps=0;while(accumulator>=.05&&steps<600){state.simulation.step(.05);accumulator-=.05;steps++;if(steps%10===0&&performance.now()>deadline)break;}accumulator=Math.min(accumulator,.25);}const snap=state.simulation.snapshot({includeEvents:false});view.update(snap);
+  if(state.mode==='run'&&state.simulation){if(state.running&&!document.hidden){accumulator+=dt*state.speed;const deadline=performance.now()+9;let steps=0;while(accumulator>=.05&&steps<600){state.simulation.step(.05);accumulator-=.05;steps++;if(steps%10===0&&performance.now()>deadline)break;}accumulator=Math.min(accumulator,.25);}const snap=state.simulation.snapshot({includeEvents:false});view.update(snap,{interpolationTime:snap.time+Math.min(accumulator,.05)-.05,deltaSeconds:dt,smooth:state.running&&!state.panel&&!document.hidden});
     if(now-rateWindowStart>=1000){actualRate=Math.max(0,(snap.time-rateSimStart)/((now-rateWindowStart)/1000));rateWindowStart=now;rateSimStart=snap.time;}
     if(now-lastHud>150){$('#stat-waiting').textContent=snap.stats.waiting;$('#stat-arrived').textContent=snap.stats.arrived;$('#stat-travel').textContent=snap.stats.meanTravelTime==null?'—':`${snap.stats.meanTravelTime.toFixed(0)}秒`;$('#sim-status').textContent=`${state.panel?'设置中 · 已暂停':state.running?'运行中':'已暂停'} · ${snap.time.toFixed(1)} 秒 · 在途 ${snap.stats.active}${snap.stats.turnLaneBlocked?` · 转向受限 ${snap.stats.turnLaneBlocked} 辆`:""}`;
       const blocked=snap.stats.congestedRoads||0,slow=snap.stats.slowRoads||0;$('#traffic-status').dataset.level=blocked?'congested':slow?'slow':snap.stats.active?'free':'empty';$('#traffic-summary').textContent=blocked?`拥堵 ${blocked} 段 · 缓行 ${slow} 段`:slow?`缓行 ${slow} 段 · 暂无拥堵`:'路网畅通';const incidents=snap.incidents||[];$('#incident-pill').classList.toggle('hidden',!incidents.length);$('#incident-pill').textContent=`事故 ${incidents.length} 起`;$('#actual-speed').textContent=state.running?`目标 ${state.speed}× · 实际 ${actualRate.toFixed(1)}×`:'模拟已暂停';lastHud=now;
@@ -245,4 +420,4 @@ function animate(now){const dt=Math.min(.1,Math.max(0,(now-previous)/1000));prev
   if(state.panel==='交通原理')theory.update(now);
   view.render();requestAnimationFrame(animate);
 }
-view.setNetwork(state.network);refresh();editor.defaultHint();requestAnimationFrame(animate);
+view.setNetwork(state.network);refresh();requestAnimationFrame(animate);

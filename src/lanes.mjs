@@ -46,7 +46,10 @@ export function effectiveLaneTurns(network,road,forward,index=0){
   const count=forward?laneCounts(road).forward:laneCounts(road).backward;if(index<0||index>=count)return [];
   const specified=road[forward?'turnsForward':'turnsBackward']?.[index];if(specified?.length)return [...specified];
   const at=forward?road.b:road.a,all=outgoingRoads(network,at),nonReturning=all.filter(edge=>edge.road.id!==road.id),options=nonReturning.length?nonReturning:all;
-  if(!nonReturning.length&&all.some(edge=>edge.road.id===road.id))return index===0?['left']:[];
+  if(!nonReturning.length&&all.some(edge=>edge.road.id===road.id)){
+    const physicalEnd=network.roads.filter(edge=>edge.a===at||edge.b===at).length===1;
+    return physicalEnd&&index===0?['left']:[];
+  }
   const available=new Set(options.map(edge=>classifyTurn(network,road,forward,edge.road,edge.forward)));
   if(!available.size)return [];
   if(count===1||available.size===1)return TURN_TYPES.filter(turn=>available.has(turn));
@@ -63,6 +66,10 @@ export function laneAllowsMovement(network,inRoad,inForward,index,outRoad,outFor
   // 仅在死胡同尽头（节点无其他可通行出口）且未指定特定转向时，内侧车道才自动允许掉头
   if(inRoad.id===outRoad.id){
     const at=inForward?inRoad.b:inRoad.a;
+    // A direction transition can have no onward exit for one approach while
+    // still being an ordinary physical bend. Only a real dead end has the
+    // turnaround pavement and may generate an automatic return connector.
+    if(inRoad.oneWay||network.roads.filter(road=>road.a===at||road.b===at).length!==1)return false;
     const hasOtherOut=outgoingRoads(network,at).some(edge=>edge.road.id!==inRoad.id);
     if(hasOtherOut)return false;
     if(specified?.length)return specified.includes('left');

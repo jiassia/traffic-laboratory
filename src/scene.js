@@ -10,6 +10,8 @@ import {junctionLayout} from './junction-layout.mjs';
 import {pavementFootprints,cornerBends,junctionSurfaces} from './junction-design.mjs';
 import {terminalIds,terminalLabel} from './terminals.mjs';
 import {roadTurnarounds} from './turnarounds.mjs';
+import {VehicleMotion} from './render-motion.mjs';
+import {loadModelWithRetry} from './model-loading.mjs';
 
 export const assetUrl = path => new URL(`./assets/${path}`, document.baseURI).href;
 if (typeof window !== 'undefined') window.THREE = THREE;
@@ -52,10 +54,14 @@ export class TrafficScene {
   async loadModels(){
     const loader=new GLTFLoader();const list=[...VEHICLE_TYPES.map(v=>[v.id,`vehicles/${v.id}.glb`]),['signal','props/signal_pole_3light.glb'],['lamp','props/street_lamp.glb']];
     const results=await Promise.allSettled(list.map(async([id,path])=>{
-      const gltf=await loader.loadAsync(assetUrl(path));gltf.scene.traverse(n=>{if(n.isMesh){n.castShadow=true;n.receiveShadow=true;}});this.models.set(id,gltf.scene);
+      const gltf=await loadModelWithRetry(url=>loader.loadAsync(url),assetUrl(path));gltf.scene.traverse(n=>{if(n.isMesh){n.castShadow=true;n.receiveShadow=true;}});this.models.set(id,gltf.scene);
     }));
     const failures=results.flatMap((r,i)=>r.status==='rejected'?[list[i][0]]:[]);this.ready=true;
-    if(failures.length)this.onError(`模型加载失败：${failures.join('、')}。暂用轮廓显示，可检查资源目录后刷新。`);
+    if(failures.length){
+      const names={lamp:'路灯',signal:'信号灯',...Object.fromEntries(VEHICLE_TYPES.map(type=>[type.id,type.name]))};
+      results.forEach((result,i)=>{if(result.status==='rejected')console.error(`模型资源加载失败：${assetUrl(list[i][1])}`,result.reason);});
+      this.onError(`${failures.map(id=>names[id]||id).join('、')}模型未能加载，已使用简化模型。网络恢复后刷新可重新加载。`);
+    }
     this.clearCars();this.setNetwork(this.network,this.selection);if(this.mode==='garage')this.setGarage(this.garageType||'sedan');this.onReady({failures});
   }
   resize(){
@@ -273,6 +279,8 @@ export class TrafficScene {
       const path=roadPath(network,road),width=roadWidth(road),pads=roadTurnarounds(network,road,connections,envelope);
       const start=Math.max(trim(road,road.a),pads.find(p=>p.end==='a')?.trim||0),end=path.length-Math.max(trim(road,road.b),pads.find(p=>p.end==='b')?.trim||0);
       const surface=materials.road.clone();
+      const roadSurface=materials.road.clone();roadSurface.color.setHex(0xffffff);roadSurface.vertexColors=true;
+      let heatMesh=null,heatSamples=[];
       for(const pad of pads){this.pavementMesh([pad.curbPolygon],materials.edge,.25);this.pavementMesh([pad.polygon],surface,.445);}
       this.turnaroundGuidance(pads,selection===road.id?AMBER:0xbac6c7);
       if(end-start>.05){
@@ -297,7 +305,10 @@ export class TrafficScene {
           geom.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));
           geom.setIndex(indices);
           geom.computeVertexNormals();
-          const roadMesh=new THREE.Mesh(geom,surface);
+          const base=new THREE.Color(ROAD),colors=new Float32Array(vertices.length);
+          for(let i=0;i<colors.length;i+=3)colors.set([base.r,base.g,base.b],i);
+          geom.setAttribute('color',new THREE.BufferAttribute(colors,3));
+          const roadMesh=new THREE.Mesh(geom,roadSurface);heatMesh=roadMesh;heatSamples=samples.map(sample=>sample.s);
           roadMesh.receiveShadow=true;
           roadMesh.userData.isRoadMesh=true;
           this.roadGroup.add(roadMesh);
@@ -379,7 +390,7 @@ export class TrafficScene {
           this.pathLine([roadPointAt(network,road,s,-width/2+.45),roadPointAt(network,road,s,width/2-.45)],selection===road.id?AMBER:0xbac6c7,.50);
         }
       }
-      const middle=roadPointAt(network,road,path.length/2);const badge=document.createElement('div');badge.className='road-badge hidden';this.labelLayer.append(badge);this.roadVisuals.set(road.id,{surface,badge,p:{x:middle.x,z:middle.z,y:1},level:null});
+      const middle=roadPointAt(network,road,path.length/2);const badge=document.createElement('div');badge.className='road-badge hidden';this.labelLayer.append(badge);this.roadVisuals.set(road.id,{surface,badge,p:{x:middle.x,z:middle.z,y:1},level:null,heatMesh,heatSamples,start,end,road,width});
     }
     this.junctionGuidance(network,layout,connections);
     for (const bend of bends.values()) {
@@ -390,7 +401,7 @@ export class TrafficScene {
         const colors=new Float32Array(mesh.geometry.getAttribute('position').count*3),base=new THREE.Color(ROAD);
         for(let i=0;i<colors.length;i+=3){colors[i]=base.r;colors[i+1]=base.g;colors[i+2]=base.b;}
         mesh.geometry.setAttribute('color',new THREE.BufferAttribute(colors,3));
-        this.bendVisuals.push({mesh,roadIds:[bend.roadA.id,bend.roadB.id],rows:bend.surfaceOuter.length});
+        this.bendVisuals.push({mesh,nodeId:bend.nodeId,roadIds:[bend.roadA.id,bend.roadB.id],rows:bend.surfaceOuter.length});
       }
       const active = selection === bend.roadA.id || selection === bend.roadB.id;
       this.pathLine(bend.outerCurve, active ? AMBER : 0xbac6c7, .48);
@@ -418,7 +429,7 @@ export class TrafficScene {
           values.forEach((value,j)=>weights[i*values.length+j]=value/sum);
         }
         mesh.geometry.setAttribute('color',new THREE.BufferAttribute(colors,3));
-        this.bendVisuals.push({mesh,roadIds:junction.mouths.map(arm=>arm.roadId),weights});
+        this.bendVisuals.push({mesh,nodeId:junction.nodeId,roadIds:junction.mouths.map(arm=>arm.roadId),weights});
       }
       const color=junction.mouths.some(arm=>arm.roadId===selection)?AMBER:0xbac6c7;
       for(const curve of junction.edgeCurves)this.pathLine(curve,color,.48);
@@ -525,36 +536,57 @@ export class TrafficScene {
     let g=this.models.get('signal')?.clone(true);if(!g){g=new THREE.Group();const post=makeBox(.18,4.8,.18,materials.edge);post.position.y=2.4;g.add(post);const box=makeBox(.7,1.9,.5,materials.dark);box.position.y=4.7;g.add(box);for(const [i,color]of['red','amber','green'].entries()){const mesh=new THREE.Mesh(new THREE.SphereGeometry(.21,12,10),mat(0x333333));mesh.name=`lens_${color}`;mesh.position.set(0,5.25-i*.55,.28);g.add(mesh);}}
     g.traverse(n=>{if(n.isMesh){n.userData.asset=true;n.material=n.material.clone();}});return g;
   }
-  setModeVisibility(){this.roadGroup.visible=this.mode!=='garage';this.carGroup.visible=this.mode==='run';this.garageGroup.visible=this.mode==='garage';this.previewGroup.visible=this.mode==='edit';this.hoverGroup.visible=this.mode==='edit';this.grid.visible=this.mode!=='garage';this.labelLayer.style.display=this.mode==='garage'?'none':'';this.details.visible(this.mode);this.roadGroup.traverse(n=>{if(n.userData.editorMarker)n.visible=this.mode==='edit';});for(const v of this.roadVisuals.values())if(this.mode!=='run'){v.badge.classList.add('hidden');v.surface.color.setHex(ROAD);v.level=null;}}
+  setModeVisibility(){this.roadGroup.visible=this.mode!=='garage';this.carGroup.visible=this.mode==='run';this.garageGroup.visible=this.mode==='garage';this.previewGroup.visible=this.mode==='edit';this.hoverGroup.visible=this.mode==='edit';this.grid.visible=this.mode!=='garage';this.labelLayer.style.display=this.mode==='garage'?'none':'';this.details.visible(this.mode);this.roadGroup.traverse(n=>{if(n.userData.editorMarker)n.visible=this.mode==='edit';});for(const v of this.roadVisuals.values())if(this.mode!=='run'){v.badge.classList.add('hidden');v.surface.color.setHex(ROAD);v.level=null;}if(this.mode!=='run')this.updateTraffic({},0,true);}
   setMode(mode){this.mode=mode;this.currentCamera=mode==='edit'&&!this.editPerspective?this.editCamera:this.camera;this.controls&&(this.controls.enabled=(mode!=='edit'||this.editPerspective)&&!this.fallback);this.setNavigationTool(this.navigationTool);this.setModeVisibility();if(mode==='run')this.fit();if(mode==='edit'){this.clearCars();this.details.reset();this.fit();}}
   async transitionToRun(){this.mode='transition';this.currentCamera=this.camera;this.setModeVisibility();this.fit();const end=this.camera.position.clone(),start=new THREE.Vector3(this.center.x,Math.max(160,end.y*1.3),this.center.z+.05);const duration=matchMedia('(prefers-reduced-motion: reduce)').matches?0:750;const t0=performance.now();await new Promise(resolve=>{const step=t=>{const ratio=duration?Math.min(1,(t-t0)/duration):1;const eased=ratio*ratio*(3-2*ratio);this.camera.position.lerpVectors(start,end,eased);this.camera.lookAt(this.center);if(ratio<1)requestAnimationFrame(step);else resolve();};requestAnimationFrame(step);});this.setMode('run');}
-  clearCars(){for(const model of this.vehicles.values())this.carGroup.remove(model);this.vehicles.clear();}
+  clearCars(){for(const model of this.vehicles.values())this.carGroup.remove(model);this.vehicles.clear();this.motion?.clear();}
   carModel(typeId){const source=this.models.get(typeId);const group=new THREE.Group(),t=VEHICLE_TYPES.find(v=>v.id===typeId);if(source){const root=source.clone(true);root.traverse(n=>{if(n.isMesh){n.userData.asset=true;if(/brake|tail|indicator|signal/i.test(n.name)){n.material=n.material.clone();n.userData.dynamicLamp=true;}}});group.add(root);}else{const body=makeBox(t.width,t.height,t.length,mat(t.color));body.position.y=t.height/2;group.add(body);}const queueHalo=makeBox(t.width+.9,.025,t.length+.65,new THREE.MeshBasicMaterial({color:0xff755d,transparent:true,opacity:.6,depthWrite:false,toneMapped:false}));queueHalo.position.y=.08;queueHalo.visible=false;group.userData.queueHalo=queueHalo;group.add(queueHalo);return group;}
-  update(snapshot){
+  update(snapshot,{interpolationTime=snapshot?.time,deltaSeconds=1/60,smooth=false}={}){
     this.snapshot=snapshot;if(!snapshot)return;const live=new Set(snapshot.vehicles.map(v=>v.id));for(const[id,model]of this.vehicles)if(!live.has(id)){this.carGroup.remove(model);this.vehicles.delete(id);}
-    if(this.followId!==undefined&&this.followId!==null&&this.controls){const car=snapshot.vehicles.find(v=>v.id===this.followId);if(car){const dx=car.x-this.controls.target.x,dz=car.z-this.controls.target.z;this.camera.position.x+=dx;this.camera.position.z+=dz;this.controls.target.set(car.x,1,car.z);}else this.followId=null;}
-    for(const car of snapshot.vehicles){let model=this.vehicles.get(car.id);if(!model){model=this.carModel(car.typeId);this.carGroup.add(model);this.vehicles.set(car.id,model);}model.position.set(car.x,.46,car.z);model.rotation.y=car.yaw;if(model.userData.queueHalo)model.userData.queueHalo.visible=car.speed<1&&snapshot.roadStats?.[car.laneId?.split(':')[0]]?.level==='congested';model.traverse(n=>{if(/^Wheel_/.test(n.name))n.rotation.x=car.distance/.36;if(/^Steer_/.test(n.name))n.rotation.y=car.steeringAngle||0;if(n.isMesh&&n.userData.dynamicLamp&&n.material.emissive){n.material.emissiveIntensity=car.braking?1.4:.12;if(/brake|tail/i.test(n.name))n.material.emissive.setHex(0xff3222);}});}
+    this.motion??=new VehicleMotion();const rendered=this.motion.sample(snapshot,interpolationTime,smooth);
+    if(this.followId!==undefined&&this.followId!==null&&this.controls){const car=rendered.find(v=>v.id===this.followId);if(car){const dx=car.x-this.controls.target.x,dz=car.z-this.controls.target.z;this.camera.position.x+=dx;this.camera.position.z+=dz;this.controls.target.set(car.x,1,car.z);}else this.followId=null;}
+    for(const car of rendered){let model=this.vehicles.get(car.id);if(!model){model=this.carModel(car.typeId);this.carGroup.add(model);this.vehicles.set(car.id,model);}model.position.set(car.x,.46,car.z);model.rotation.y=car.yaw;if(model.userData.queueHalo)model.userData.queueHalo.visible=car.speed<1&&snapshot.roadStats?.[car.laneId?.split(':')[0]]?.level==='congested';model.traverse(n=>{if(/^Wheel_/.test(n.name))n.rotation.x=car.distance/.36;if(/^Steer_/.test(n.name))n.rotation.y=car.steeringAngle||0;if(n.isMesh&&n.userData.dynamicLamp&&n.material.emissive){n.material.emissiveIntensity=car.braking?1.4:.12;if(/brake|tail/i.test(n.name))n.material.emissive.setHex(0xff3222);}});}
     for(const head of this.phaseHeads){const phase=snapshot.conditions?.signalMode==='off'?'off':snapshot.signals[head.nodeId]?.[head.axis]||'red';head.object.traverse(n=>{if(!n.isMesh)return;for(const c of['red','amber','green'])if(n.name.includes(`lens_${c}`)){const on=(phase==='yellow'?'amber':phase)===c;n.material.color.setHex(on?SIGNAL_COLORS[c]:0x192129);}});}
-    this.updateTraffic(snapshot.roadStats||{});this.details.update(snapshot,this.center);
+    this.updateTraffic(snapshot.roadStats||{},deltaSeconds);this.details.update(snapshot,this.center);
   }
-  updateTraffic(roads){
-    const surfaces={empty:ROAD,free:0x203c34,slow:0x5c4925,congested:0x652b27};
-    const crowded=Object.values(roads).filter(r=>r.level==='congested'||r.level==='slow').sort((a,b)=>b.queuedVehicles-a.queuedVehicles||a.speedRatio-b.speedRatio).slice(0,this.width<600?2:4);const visible=new Set(crowded.map(r=>r.roadId));
-    for(const[id,v]of this.roadVisuals){const r=roads[id],level=r?.level||'empty';if(v.level!==level||v.heatmap!==this.showHeatmap){v.level=level;v.heatmap=this.showHeatmap;v.surface.color.setHex(this.showHeatmap===false?ROAD:surfaces[level]);}
-      v.badge.classList.toggle('hidden',!visible.has(id)||this.mode!=='run');v.badge.dataset.level=level;if(r)v.badge.textContent=`${r.label} · ${r.queuedVehicles?`排队 ${r.queuedVehicles} 辆`:r.meanSpeedKmh==null?'无车':`${r.meanSpeedKmh.toFixed(0)} km/h`}`;
+  updateTraffic(roads,deltaSeconds=1/60,instant=false){
+    // The monitoring score is continuous. All asphalt uses the same linear
+    // color palette and each node owns one boundary color shared by its arms.
+    const stops=[[0,0x203c34],[.28,0x3c4a31],[.5,0x65502c],[.72,0x78402b],[1,0x652b27]];
+    const alpha=instant?1:1-Math.exp(-Math.min(.1,Math.max(0,deltaSeconds))/.35);
+    const tone=score=>{
+      score=THREE.MathUtils.clamp(score,0,1);
+      const index=stops.findIndex((stop,i)=>i>0&&score<=stop[0]),i=index<0?stops.length-1:index;
+      return new THREE.Color(stops[i-1][1]).lerp(new THREE.Color(stops[i][1]),(score-stops[i-1][0])/(stops[i][0]-stops[i-1][0]));
+    };
+    const crowded=Object.values(roads).filter(r=>r.level==='congested'||r.level==='slow').sort((a,b)=>(b.congestionScore||0)-(a.congestionScore||0)).slice(0,this.width<600?2:4),visible=new Set(crowded.map(r=>r.roadId));
+    const nodes=new Map();
+    for(const[id,v]of this.roadVisuals){
+      const r=roads[id],level=r?.level||'empty',score=r?.congestionScore??({empty:0,free:0,slow:.5,congested:1}[level]);
+      const target=this.showHeatmap===false||!r||instant?new THREE.Color(ROAD):new THREE.Color(ROAD).lerp(tone(score),Math.min(1,(r.vehicleCount||0)/2));
+      v.level=level;v.heatScore=score;v.surface.color.lerp(target,alpha);
+      v.badge.classList.toggle('hidden',!visible.has(id)||this.mode!=='run');v.badge.dataset.level=level;
+      if(r)v.badge.textContent=`${r.label} · ${r.queuedVehicles?`排队 ${r.queuedVehicles} 辆`:r.meanSpeedKmh==null?'无车':`${r.meanSpeedKmh.toFixed(0)} km/h`}`;
+      for(const id of[v.road.a,v.road.b]){
+        if(!nodes.has(id))nodes.set(id,{color:new THREE.Color(0,0,0),weight:0});
+        const node=nodes.get(id),weight=v.width;node.color.r+=v.surface.color.r*weight;node.color.g+=v.surface.color.g*weight;node.color.b+=v.surface.color.b*weight;node.weight+=weight;
+      }
+    }
+    for(const node of nodes.values())node.color.multiplyScalar(1/node.weight);
+    const smooth=value=>{const t=THREE.MathUtils.clamp(value,0,1);return t*t*(3-2*t);};
+    for(const v of this.roadVisuals.values()){
+      if(!v.heatMesh)continue;
+      const colors=v.heatMesh.geometry.getAttribute('color'),span=Math.max(.01,Math.min((v.end-v.start)/2,Math.max(24,v.width*2))),startColor=nodes.get(v.road.a).color,endColor=nodes.get(v.road.b).color,c=new THREE.Color();
+      for(let i=0;i<v.heatSamples.length;i++){
+        const s=v.heatSamples[i];c.copy(v.surface.color).lerp(startColor,1-smooth((s-v.start)/span)).lerp(endColor,1-smooth((v.end-s)/span));
+        colors.setXYZ(i*2,c.r,c.g,c.b);colors.setXYZ(i*2+1,c.r,c.g,c.b);
+      }
+      colors.needsUpdate=true;
     }
     for(const bend of this.bendVisuals||[]){
-      const levels=bend.roadIds.map(id=>roads[id]?.level||'empty'),key=`${levels.join(':')}:${this.showHeatmap}`;
-      if(bend.key===key)continue;bend.key=key;
-      const palette=levels.map(level=>new THREE.Color(this.showHeatmap===false?ROAD:surfaces[level]??ROAD)),[a,b]=palette,color=bend.mesh.geometry.getAttribute('color');
-      for(let i=0;i<color.count;i++){
-        if(bend.weights){
-          const c=new THREE.Color(0,0,0);palette.forEach((entry,j)=>{const w=bend.weights[i*palette.length+j];c.r+=entry.r*w;c.g+=entry.g*w;c.b+=entry.b*w;});color.setXYZ(i,c.r,c.g,c.b);continue;
-        }
-        const row=i<bend.rows?i:color.count-1-i,t=row/Math.max(1,bend.rows-1),c=a.clone().lerp(b,t);
-        color.setXYZ(i,c.r,c.g,c.b);
-      }
-      color.needsUpdate=true;
+      const c=nodes.get(bend.nodeId)?.color||new THREE.Color(ROAD),colors=bend.mesh.geometry.getAttribute('color');
+      for(let i=0;i<colors.count;i++)colors.setXYZ(i,c.r,c.g,c.b);
+      colors.needsUpdate=true;
     }
   }
   setGarage(typeId){this.mode='garage';this.garageType=typeId;this.currentCamera=this.camera;this.setModeVisibility();if(this.garageCar)this.garageGroup.remove(this.garageCar);this.garageCar=this.carModel(typeId);this.garageCar.position.y=.2;this.garageGroup.add(this.garageCar);const t=VEHICLE_TYPES.find(v=>v.id===typeId),d=Math.max(7.8,t.length*1.2)*Math.max(1,1/(this.width/this.height));this.camera.position.set(d*.72,d*.36,d*.82);if(this.controls){this.controls.target.set(0,t.height*.8,0);this.controls.enabled=!this.fallback;this.controls.minDistance=5;this.controls.mouseButtons={LEFT:THREE.MOUSE.ROTATE,MIDDLE:THREE.MOUSE.PAN,RIGHT:THREE.MOUSE.ROTATE};this.controls.update();}}
