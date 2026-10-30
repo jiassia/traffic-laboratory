@@ -337,10 +337,10 @@ select:focus-visible {
 
 .editor-bottom {
   bottom: 24px;
-  gap: 12px;
+  width: 640px;
   max-width: calc(100% - 32px);
   padding-top: 42px;
-  align-items: flex-end;
+  align-items: stretch;
 }
 
 /* 连接与操作状态指示条 */
@@ -457,9 +457,9 @@ select:focus-visible {
 
 /* 建造 Dock 容器 */
 .construction-dock {
-  width: 580px;
-  max-width: calc(100vw - 180px);
-  flex: 0 1 580px;
+  width: 100%;
+  max-width: 100%;
+  flex: 1 1 auto;
   min-width: 0;
   border-radius: 16px;
   background: rgba(255, 255, 255, 0.9);
@@ -672,13 +672,25 @@ select:focus-visible {
   height: 15px;
 }
 
-/* 吸附与道路说明条 (Snap Strip) */
-.snap-strip {
-  padding: 6px 12px;
+/* 工具栏底部统一容纳吸附选项与开始操作。 */
+.dock-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 56px;
+  padding: 9px 12px;
   background: #f8fafc;
   border-top: 1px solid var(--line);
+}
+
+.snap-strip {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  min-width: 0;
   font-size: 12px;
-  gap: 6px;
+  gap: 4px;
 }
 
 .snap-strip button {
@@ -708,23 +720,25 @@ select:focus-visible {
   font-size: 12px;
 }
 
-/* “开始运行”主按钮：高度与 Dock 呼应，饱满圆角 */
+/* 开始按钮使用与工具栏控件相近的尺寸。 */
 .start-button {
-  height: 50px;
-  min-width: 120px;
-  padding: 0 18px;
-  font-size: 15px;
-  border-radius: 14px;
+  height: 36px;
+  min-width: 104px;
+  padding: 0 16px;
+  font-size: 14px;
+  border-radius: 9px;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
   flex: 0 0 auto;
+  margin-left: auto;
+  box-shadow: var(--shadow-xs) !important;
 }
 
 .start-button .icon {
-  width: 20px;
-  height: 20px;
+  width: 16px;
+  height: 16px;
 }
 
 /* ==========================================================================
@@ -1975,7 +1989,7 @@ select:focus-visible {
   .editor-bottom {
     bottom: 16px;
     width: calc(100% - 24px);
-    max-width: min(600px, calc(100% - 24px));
+    max-width: min(640px, calc(100% - 24px));
     gap: 8px;
     padding-top: 36px;
     align-items: flex-end;
@@ -1987,8 +2001,8 @@ select:focus-visible {
   }
 
   .start-button {
-    height: 48px;
-    min-width: 96px;
+    height: 36px;
+    min-width: 104px;
     padding: 0 14px;
     font-size: 14px;
     flex: 0 0 auto;
@@ -2076,8 +2090,10 @@ select:focus-visible {
   }
 
   .start-button {
-    width: 100% !important;
-    height: 46px !important;
+    width: auto !important;
+    min-width: 92px;
+    height: 36px !important;
+    padding: 0 12px;
   }
 
   .view-label {
@@ -2085,7 +2101,24 @@ select:focus-visible {
   }
 
   .snap-strip {
-    display: none !important;
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 2px;
+    font-size: 11px;
+  }
+
+  .snap-strip button {
+    padding: 2px 5px;
+    font-size: 11px;
+  }
+
+  .snap-strip .road-spec {
+    display: none;
+  }
+
+  .dock-footer {
+    gap: 8px;
+    padding: 9px 10px;
   }
 
   /* 移动端收起 command-rail，避免挡住视线 */
