@@ -1,3 +1,4 @@
+import {bendLanePath} from './bend-geometry.mjs';
 // Deterministic, metre-second teaching traffic model. Rendering never advances this state.
 import {roadPath,pathPointAt,makePath,projectOnPath,samplePath} from './geometry.mjs';
 import {roadEndTrim,junctionIssues} from './junction-layout.mjs';
@@ -133,11 +134,14 @@ function makeLane(network,road,from,index=0) {
   const centerTrim=nodeId=>{const deadEnd=network.roads.filter(r=>r.a===nodeId||r.b===nodeId).length===1&&!road.oneWay&&!isSource(network,nodeId)&&!isSink(network,nodeId);return deadEnd?Math.min(JUNCTION_TRIM,centerPath.length*.25):roadEndTrim(network,road,nodeId);};
   const atFrom=centerTrim(from),atTo=centerTrim(to),cutStart=pathPointAt(centerPath,forward?atFrom:centerPath.length-atFrom,signedOffset),cutEnd=pathPointAt(centerPath,forward?centerPath.length-atTo:atTo,signedOffset);
   const startS=projectOnPath(path,cutStart).s,endS=projectOnPath(path,cutEnd).s,trimStart=forward?startS:length-startS,trimEnd=forward?length-endS:endS;
-  return {key:laneKey(road,from,index),road,from,to,a,b,path,centerPath,forward,index,signedOffset,length,dx,dz,trim:trimEnd,trimStart,trimEnd,offset};
+  return {key:laneKey(road,from,index),network,road,from,to,a,b,path,centerPath,forward,index,signedOffset,length,dx,dz,trim:trimEnd,trimStart,trimEnd,offset};
 }
 function point(lane,s) {const clamped=clamp(s,0,lane.length),p=pathPointAt(lane.path,lane.forward?clamped:lane.length-clamped),yaw=p.yaw+(lane.forward?0:Math.PI),extra=s-clamped;return{x:p.x+Math.sin(yaw)*extra,z:p.z+Math.cos(yaw)*extra,yaw,curvature:(p.curvature||0)*(lane.forward?1:-1)};}
 export function lanePoint(network,road,fromNodeId,s,index=0) {const {x,z,yaw}=point(makeLane(network,road,fromNodeId,index),s);return{x,z,yaw:Math.atan2(Math.sin(yaw),Math.cos(yaw))};}
 function connector(inLane,outLane) {
+  const shared=bendLanePath(inLane.network,inLane,outLane);
+  if(shared){const points=shared.points.map((p,i)=>({...p,s:shared.distances[i],yaw:Math.atan2(shared.tangents[i].dx,shared.tangents[i].dz)}));return{points,length:shared.length,outLane,junction:inLane.to};}
+
   const p0=point(inLane,inLane.length-inLane.trim),p3=point(outLane,outLane.trimStart),inDir={x:Math.sin(p0.yaw),z:Math.cos(p0.yaw)},outDir={x:Math.sin(p3.yaw),z:Math.cos(p3.yaw)};
   const dot=inDir.x*outDir.x+inDir.z*outDir.z;
   const base=Math.min(inLane.trimEnd,outLane.trimStart),delta={x:p3.x-p0.x,z:p3.z-p0.z},available=Math.max(.25,Math.min(delta.x*inDir.x+delta.z*inDir.z,delta.x*outDir.x+delta.z*outDir.z));

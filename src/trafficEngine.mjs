@@ -67,10 +67,34 @@ export function createTrafficEngine(inputNetwork,inputSettings,ctx){
     const edge=available[Math.floor(random(settings.seed,car.id,100+car.decisions)*available.length)];visited.add(`${edge.road.id}:${at}`);
     return {at,edge,memoryStack,visitedNodes,visited,decisions:car.decisions+1};
   }
+  // Plan in directed-road state, so a reachable node is not mistaken for a
+  // reachable turn. Travel time includes current lane queues and obstructions.
+  function planRoute(car,from){
+    const incoming=car.lane?.to===from?car.lane:null;
+    const todo=[{at:from,incoming,cost:0,path:[]}],best=new Map();
+    while(todo.length){
+      todo.sort((a,b)=>a.cost-b.cost||a.at.localeCompare(b.at));const state=todo.shift();
+      if(state.at===car.targetSinkId)return state.path;
+      const key=state.incoming?`${state.incoming.road.id}:${state.incoming.from}:${state.at}:${state.incoming.index??'*'}`:state.at;
+      if((best.get(key)??Infinity)<=state.cost)continue;best.set(key,state.cost);
+      for(const edge of choicesAt(state.at)){
+        if(!movementAllowed(state.incoming,edge))continue;
+        const count=edge.from===edge.road.a?laneCounts(edge.road).forward:laneCounts(edge.road).backward;
+        const options=Array.from({length:count},(_,i)=>laneFor(edge.road,edge.from,i));
+        const speed=Math.max(1,Math.min(edge.road.speedLimit,settings.speeds[car.type.id])/3.6*weather().speedFactor);
+        const delay=Math.min(...options.map(lane=>laneOccupants(lane.key,car).reduce((sum,item)=>sum+(item.car.incidentId?60:item.speed<1?3:1),0)));
+        const cost=options[0].length/speed+delay;
+        todo.push({at:edge.to,incoming:edge,cost:state.cost+cost,path:[...state.path,edge]});
+      }
+    }
+    return [];
+  }
   function choose(car,at){
     if(car.knownExit){
-      const edge=car.route[car.routeIndex];if(!edge)return null;const next=car.route[car.routeIndex+1],lane=selectLane(edge.road,edge.from,car,next);
-      if(lane){car.routeIndex++;car.selectedNextEdge=next;car.blockedReason=null;}else car.blockedReason='no-compatible-turn-lane';return lane;
+      const route=planRoute(car,at),edge=route[0],next=route[1];
+      if(!edge){car.blockedReason='no-compatible-route';return null;}
+      const lane=selectLane(edge.road,edge.from,car,next);
+      if(lane){car.route=route;car.routeIndex=1;car.selectedNextEdge=next;car.blockedReason=null;}else car.blockedReason='no-compatible-turn-lane';return lane;
     }
     const plan=car.nextPlan?.at===at?car.nextPlan:unknownPlan(car,at);if(!plan)return null;
     const nextPlan=unknownPlan({...car,...plan},plan.edge.to,plan.edge),lane=selectLane(plan.edge.road,plan.edge.from,car,nextPlan?.edge);
@@ -125,7 +149,7 @@ export function createTrafficEngine(inputNetwork,inputSettings,ctx){
       const blocked=space<required||reserved,entranceLoad=items.filter(item=>item.s-item.length/2<required+25).length;
       return{lane,space,load:items.length,entranceLoad,blocked,index};
     }).filter(item=>!nextEdge||laneAllowsMovement(network,road,from===road.a,item.index,nextEdge.road,nextEdge.from===nextEdge.road.a));
-    candidates.sort((a,b)=>Number(a.blocked)-Number(b.blocked)||a.entranceLoad-b.entranceLoad||Math.abs(a.index-preferred)-Math.abs(b.index-preferred)||a.load-b.load||b.space-a.space||a.index-b.index);
+    candidates.sort((a,b)=>Number(a.blocked)-Number(b.blocked)||a.entranceLoad-b.entranceLoad||a.load-b.load||Math.abs(a.index-preferred)-Math.abs(b.index-preferred)||b.space-a.space||a.index-b.index);
     return candidates[0]?.lane||null;
   }
   function withBounds(grant){const xs=grant.points.map(p=>p.x),zs=grant.points.map(p=>p.z);return{...grant,straight:grant.points.every(p=>Math.abs(Math.atan2(Math.sin(p.yaw-grant.points[0].yaw),Math.cos(p.yaw-grant.points[0].yaw)))<.002),bounds:{minX:Math.min(...xs),maxX:Math.max(...xs),minZ:Math.min(...zs),maxZ:Math.max(...zs)}};}
@@ -158,7 +182,20 @@ export function createTrafficEngine(inputNetwork,inputSettings,ctx){
   }
   function obtain(car){
     const lane=car.lane,node=lane.to;if(car.incidentId)return false;
-    const owned=owners(node);if(owned.has(car.id))return true;
+    const owned=owners(node);
+    const blockedAhead=car.pending&&cars.some(other=>other.incidentId&&other.lane.key===car.pending.key);
+    if(car.knownExit&&car.pending&&((car.stoppedFor||0)>5||blockedAhead)&&tick>=(car.routeReviewTick||0)){
+      car.routeReviewTick=tick+Math.ceil(5/FIXED_STEP);
+      const previous=car.pending,alternative=choose(car,node);
+      if(alternative){
+        if(previous.road.id!==alternative.road.id){
+          if(owned.has(car.id)){release(node,car.id);car.held=car.held.filter(id=>id!==node);}
+          car.pending=alternative;log('route-replanned',{vehicleId:car.id,nodeId:node,fromRoadId:previous.road.id,toRoadId:alternative.road.id});
+        }else if(!owned.has(car.id))car.pending=alternative;
+        car.pendingNextEdge=car.selectedNextEdge;
+      }
+    }
+    if(owned.has(car.id))return true;
     const end=point(lane,lane.length-lane.trim),axis=Math.abs(Math.sin(end.yaw))>=Math.abs(Math.cos(end.yaw))?'ew':'ns',phase=effectivePhase(node);
     if(!sinkSet.has(node)&&!car.pending){car.pending=choose(car,node);car.pendingNextEdge=car.selectedNextEdge;}
     if(!sinkSet.has(node)&&!car.pending){if(car.blockedReason&&!car.turnBlockLogged){car.turnBlockLogged=true;log('turn-lane-blocked',{vehicleId:car.id,nodeId:node,laneId:lane.key,reason:car.blockedReason});}return false;}
@@ -176,6 +213,21 @@ export function createTrafficEngine(inputNetwork,inputSettings,ctx){
     for(const id of owned){const other=cars.find(item=>item.id===id);if(other&&conflicts(car,grant,other))return false;}
     if(!reservations.has(node))reservations.set(node,new Set());reservations.get(node).add(car.id);car.held.push(node);car.grants??=new Map();car.grants.set(node,{...grant,inLane:lane});log('junction-enter',{vehicleId:car.id,nodeId:node,phase:phase[axis]});
     if(car.violation==='priority'&&!car.violationOccurred){car.violationOccurred=true;counts.violations++;log('violation-start',{vehicleId:car.id,kind:'priority'});}return true;
+  }
+  // Limit only actual bends. A straight connector has no artificial junction
+  // speed cap; approaching drivers brake for the curvature ahead when needed.
+  function connectorSpeed(car,turn,s,approach=0){
+    const lateral=car.type.id==='bus'||car.type.id==='truck'?1.6:2.2;
+    const brake=car.type.brake*weather().friction;let limit=Infinity;
+    for(let i=1;i<turn.points.length;i++){
+      const a=turn.points[i-1],b=turn.points[i],distance=(a.s+b.s)/2-s;
+      if(distance<-.5||distance+approach>60)continue;
+      const angle=Math.abs(Math.atan2(Math.sin(b.yaw-a.yaw),Math.cos(b.yaw-a.yaw)));
+      const curvature=angle/Math.max(.001,b.s-a.s);
+      if(curvature<1e-5)continue;
+      limit=Math.min(limit,Math.sqrt(lateral/curvature+2*brake*Math.max(0,distance+approach)));
+    }
+    return limit;
   }
   const permitted=car=>owners(car.lane.to).has(car.id)||car.unsafePermit===car.lane.to;
 
@@ -225,7 +277,7 @@ export function createTrafficEngine(inputNetwork,inputSettings,ctx){
     admit();cacheLaneOccupants();
     const previous=settings.accidentsEnabled?new Map(cars.map(car=>[car.id,body(car)])):null;
     const ordered=[...cars].sort((a,b)=>(a.violation==='priority'?-1:0)-(b.violation==='priority'?-1:0)||a.enteredAt-b.enteredAt||a.id-b.id);
-    for(const car of ordered){if(car.turn||car.incidentId)continue;const remain=car.lane.length-car.lane.trim-car.s-car.type.length/2-MIN_GAP;const terminalSignal=network.signals[car.lane.to]?.enabled;if((!sinkSet.has(car.lane.to)||terminalSignal)&&remain<Math.max(18,car.speed*car.speed/(2*car.type.brake*weather().friction)+4))obtain(car);}
+    for(const car of ordered){if(car.turn||car.incidentId)continue;const remain=car.lane.length-car.lane.trim-car.s-car.type.length/2-MIN_GAP;const terminalSignal=network.signals[car.lane.to]?.enabled;if((!sinkSet.has(car.lane.to)||terminalSignal)&&remain<Math.max(60,car.speed*(car.type.timeHeadway??1.5)*settings.reactionTime+car.speed*car.speed/(2*car.type.brake*weather().friction)+15))obtain(car);}
     const proposals=[];
     for(const car of cars){
       if(car.incidentId){proposals.push({car,move:0,speed:0,acc:0,gap:Infinity,normalLimit:0});continue;}
@@ -235,12 +287,12 @@ export function createTrafficEngine(inputNetwork,inputSettings,ctx){
       target=Math.min(target,curveSpeed,stoppingSightSpeed(car.type.brake,conditions.friction,conditions.visibility,T));const normalLimit=target;
       if(car.lane.path.points.length>2&&!car.turn)for(const distance of[5,12,25,45]){if(car.s+distance>=car.lane.length-car.lane.trim)break;const ahead=point(car.lane,car.s+distance),curveLimit=Math.sqrt((car.type.id==='bus'||car.type.id==='truck'?1.6:2.2)/Math.max(Math.abs(ahead.curvature||0),1e-6));target=Math.min(target,Math.sqrt(curveLimit*curveLimit+2*car.type.brake*conditions.friction*distance));}
       if(car.violation==='speeding'||!car.compliant)target=Math.min(140/3.6,target*(car.compliant?1.3:1.45));
-      if(car.turn)target=Math.min(target,car.compliant?3.5:7);
+      if(car.turn)target=Math.min(target,car.turn.outLane.road.speedLimit/3.6*conditions.speedFactor,connectorSpeed(car,car.turn,car.turnS));
       const occupant=car.turn?null:laneOccupants(car.lane.key,car).find(item=>item.s>car.s);
       if(occupant){gap=occupant.s-car.s-(occupant.length+car.type.length)/2;leaderSpeed=occupant.speed;}
       if(!car.turn&&(!sinkSet.has(car.lane.to)||network.signals[car.lane.to]?.enabled)){
         if(!permitted(car)){const counts=laneCounts(car.lane.road),setback=(car.lane.forward?counts.forward:counts.backward)>1?SIGNAL_STOP_SETBACK:0,stopGap=car.lane.length-car.lane.trim-setback-car.s-car.type.length/2;if(stopGap<gap){gap=stopGap;leaderSpeed=0;}}
-        const distance=Math.max(0,car.lane.length-car.lane.trim-car.s);target=Math.min(target,Math.sqrt((car.compliant?3.5:7)**2+2*car.type.brake*conditions.friction*distance));
+        if(car.pending){const distance=Math.max(0,car.lane.length-car.lane.trim-car.s);car.approachTurn=car.approachTurn?.outLane===car.pending?car.approachTurn:connector(car.lane,car.pending);target=Math.min(target,connectorSpeed(car,car.approachTurn,0,distance),Math.sqrt((car.pending.road.speedLimit/3.6*conditions.speedFactor)**2+2*car.type.brake*conditions.friction*distance));}
       }
       if(car.compliant&&!car.turn){
         for(const {sign,s} of pendingStops(car)){const distance=s-car.s-car.type.length/2;if(distance<-.3){car.stopSigns.add(sign.id);continue;}if(car.speed<.1&&distance<1){car.stopWait=(car.stopWait||0)+FIXED_STEP;if(car.stopWait>=1){car.stopSigns.add(sign.id);car.stopWait=0;log('stop-sign-complete',{vehicleId:car.id,facilityId:sign.id});continue;}}if(distance<gap){gap=Math.max(0,distance);leaderSpeed=0;}}

@@ -395,13 +395,36 @@ export class TrafficScene {
     this.junctionGuidance(network,layout,connections);
     for (const bend of bends.values()) {
       const surface=materials.road.clone();surface.color.setHex(0xffffff);surface.vertexColors=true;
-      const mesh=this.pavementMesh([bend.polygon],surface,.445);
-      if(mesh){
-        mesh.name='bend_surface';mesh.userData.isRoadMesh=true;
-        const colors=new Float32Array(mesh.geometry.getAttribute('position').count*3),base=new THREE.Color(ROAD);
-        for(let i=0;i<colors.length;i+=3){colors[i]=base.r;colors[i+1]=base.g;colors[i+2]=base.b;}
-        mesh.geometry.setAttribute('color',new THREE.BufferAttribute(colors,3));
-        this.bendVisuals.push({mesh,nodeId:bend.nodeId,roadIds:[bend.roadA.id,bend.roadB.id],rows:bend.surfaceOuter.length});
+      let mesh=null;
+      if(bend.surfaceOuter && bend.surfaceOuter.length>=2){
+        const n=bend.surfaceOuter.length,vertices=[],indices=[];
+        for(let i=0;i<n;i++){
+          const left=bend.surfaceInner[i],right=bend.surfaceOuter[i];
+          vertices.push(left.x,.445,left.z,right.x,.445,right.z);
+        }
+        for(let i=0;i<n-1;i++){
+          indices.push(i*2,i*2+2,i*2+1,i*2+1,i*2+2,i*2+3);
+        }
+        const geom=new THREE.BufferGeometry();
+        geom.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));
+        geom.setIndex(indices);
+        geom.computeVertexNormals();
+        const colors=new Float32Array(vertices.length),base=new THREE.Color(ROAD);
+        for(let i=0;i<colors.length;i+=3)colors.set([base.r,base.g,base.b],i);
+        geom.setAttribute('color',new THREE.BufferAttribute(colors,3));
+        mesh=new THREE.Mesh(geom,surface);
+        mesh.name='bend_surface';mesh.userData.isRoadMesh=true;mesh.receiveShadow=true;
+        this.roadGroup.add(mesh);
+        this.bendVisuals.push({mesh,nodeId:bend.nodeId,roadAId:bend.roadA.id,roadBId:bend.roadB.id,steps:n,isStrip:true});
+      }else{
+        mesh=this.pavementMesh([bend.polygon],surface,.445);
+        if(mesh){
+          mesh.name='bend_surface';mesh.userData.isRoadMesh=true;
+          const colors=new Float32Array(mesh.geometry.getAttribute('position').count*3),base=new THREE.Color(ROAD);
+          for(let i=0;i<colors.length;i+=3){colors[i]=base.r;colors[i+1]=base.g;colors[i+2]=base.b;}
+          mesh.geometry.setAttribute('color',new THREE.BufferAttribute(colors,3));
+          this.bendVisuals.push({mesh,nodeId:bend.nodeId,roadAId:bend.roadA.id,roadBId:bend.roadB.id,steps:1,isStrip:false});
+        }
       }
       const active = selection === bend.roadA.id || selection === bend.roadB.id;
       this.pathLine(bend.outerCurve, active ? AMBER : 0xbac6c7, .48);
@@ -573,10 +596,11 @@ export class TrafficScene {
       }
     }
     for(const node of nodes.values())node.color.multiplyScalar(1/node.weight);
+    const bendNodes=new Set((this.bendVisuals||[]).filter(b=>b.isStrip).map(b=>b.nodeId));
     const smooth=value=>{const t=THREE.MathUtils.clamp(value,0,1);return t*t*(3-2*t);};
     for(const v of this.roadVisuals.values()){
       if(!v.heatMesh)continue;
-      const colors=v.heatMesh.geometry.getAttribute('color'),span=Math.max(.01,Math.min((v.end-v.start)/2,Math.max(24,v.width*2))),startColor=nodes.get(v.road.a).color,endColor=nodes.get(v.road.b).color,c=new THREE.Color();
+      const colors=v.heatMesh.geometry.getAttribute('color'),span=Math.max(.01,Math.min((v.end-v.start)/2,Math.max(24,v.width*2))),startColor=bendNodes.has(v.road.a)?v.surface.color:nodes.get(v.road.a).color,endColor=bendNodes.has(v.road.b)?v.surface.color:nodes.get(v.road.b).color,c=new THREE.Color();
       for(let i=0;i<v.heatSamples.length;i++){
         const s=v.heatSamples[i];c.copy(v.surface.color).lerp(startColor,1-smooth((s-v.start)/span)).lerp(endColor,1-smooth((v.end-s)/span));
         colors.setXYZ(i*2,c.r,c.g,c.b);colors.setXYZ(i*2+1,c.r,c.g,c.b);
@@ -584,8 +608,21 @@ export class TrafficScene {
       colors.needsUpdate=true;
     }
     for(const bend of this.bendVisuals||[]){
-      const c=nodes.get(bend.nodeId)?.color||new THREE.Color(ROAD),colors=bend.mesh.geometry.getAttribute('color');
-      for(let i=0;i<colors.count;i++)colors.setXYZ(i,c.r,c.g,c.b);
+      const colors=bend.mesh.geometry.getAttribute('color');
+      if(bend.isStrip){
+        const colA=this.roadVisuals.get(bend.roadAId)?.surface.color||nodes.get(bend.nodeId)?.color||new THREE.Color(ROAD);
+        const colB=this.roadVisuals.get(bend.roadBId)?.surface.color||nodes.get(bend.nodeId)?.color||new THREE.Color(ROAD);
+        const c=new THREE.Color();
+        for(let i=0;i<bend.steps;i++){
+          const t=bend.steps>1?i/(bend.steps-1):0;
+          c.copy(colA).lerp(colB,t);
+          colors.setXYZ(i*2,c.r,c.g,c.b);
+          colors.setXYZ(i*2+1,c.r,c.g,c.b);
+        }
+      }else{
+        const c=nodes.get(bend.nodeId)?.color||new THREE.Color(ROAD);
+        for(let i=0;i<colors.count;i++)colors.setXYZ(i,c.r,c.g,c.b);
+      }
       colors.needsUpdate=true;
     }
   }
